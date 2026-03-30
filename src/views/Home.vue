@@ -5,6 +5,13 @@
       <StatsCard :stats="itemsStore.stats" />
     </div>
 
+    <!-- 提醒按钮 -->
+    <el-card class="reminder-card" shadow="never">
+      <el-button type="warning" :icon="Bell" @click="manualCheckReminders" style="width: 100%">
+        🔔 检查倒计时提醒
+      </el-button>
+    </el-card>
+
     <!-- 操作栏 -->
     <el-card class="action-card" shadow="never">
       <el-row :gutter="12">
@@ -163,17 +170,19 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Search, Plus } from '@element-plus/icons-vue'
+import { Search, Plus, Bell } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useItemsStore } from '@/stores/items'
 import StatsCard from '@/components/StatsCard.vue'
 import ItemCard from '@/components/ItemCard.vue'
 import ItemForm from '@/components/ItemForm.vue'
 import { calculateProfit } from '@/utils/profit'
+import { getUrgentItems, getExpiredItems, getReminderMessage, sendEmailReminder } from '@/utils/reminder'
 import type { Item } from '@/types'
 
 const itemsStore = useItemsStore()
 
+const userEmail = ref('') // 用户邮箱
 const searchKeyword = ref('')
 const filterPlatform = ref<'' | '拼多多' | '淘宝' | '抖音' | '京东' | '唯品会' | '快手'>('')
 const filterStatus = ref<'' | 'pending' | 'received' | 'sold'>('')
@@ -232,7 +241,98 @@ onMounted(async () => {
   await itemsStore.init()
   console.log('加载的物品数量:', itemsStore.allItems.length)
   console.log('所有物品:', itemsStore.allItems)
+
+  // 检查提醒
+  checkReminders()
 })
+
+// 检查倒计时提醒
+function checkReminders() {
+  const allItems = itemsStore.allItems
+  const urgentItems = getUrgentItems(allItems)
+  const expiredItems = getExpiredItems(allItems)
+
+  if (urgentItems.length > 0 || expiredItems.length > 0) {
+    const message = getReminderMessage(urgentItems, expiredItems)
+
+    ElMessageBox.confirm(
+      message,
+      '⏰ 退货倒计时提醒',
+      {
+        confirmButtonText: '发送邮件提醒',
+        cancelButtonText: '我知道了',
+        type: urgentItems.length > 0 ? 'warning' : 'info',
+        customClass: 'reminder-message-box'
+      }
+    ).then(() => {
+      // 用户点击了发送邮件
+      handleSendEmailReminder(urgentItems, expiredItems)
+    }).catch(() => {
+      // 用户点击了取消或关闭
+    })
+  }
+}
+
+// 发送邮件提醒
+function handleSendEmailReminder(urgentItems: Item[], expiredItems: Item[]) {
+  // 从 localStorage 获取用户邮箱
+  const savedEmail = localStorage.getItem('user_email')
+  const email = savedEmail || userEmail.value
+
+  if (!email) {
+    ElMessageBox.prompt('请输入您的邮箱地址', '邮件提醒', {
+      confirmButtonText: '发送',
+      cancelButtonText: '取消',
+      inputPattern: /[^@]+@[^@]+\.[^@]+/,
+      inputErrorMessage: '请输入正确的邮箱地址'
+    }).then(({ value }) => {
+      userEmail.value = value
+      localStorage.setItem('user_email', value)
+      sendEmailReminder(urgentItems, expiredItems, value)
+      ElMessage.success('已打开邮件客户端')
+    }).catch(() => {
+      // 用户取消
+    })
+  } else {
+    sendEmailReminder(urgentItems, expiredItems, email)
+    ElMessage.success('已打开邮件客户端')
+  }
+}
+
+// 手动检查提醒
+function manualCheckReminders() {
+  const allItems = itemsStore.allItems
+  const urgentItems = getUrgentItems(allItems)
+  const expiredItems = getExpiredItems(allItems)
+
+  if (urgentItems.length === 0 && expiredItems.length === 0) {
+    ElMessage.success('✅ 目前没有需要紧急处理的商品')
+    return
+  }
+
+  checkReminders()
+}
+  const email = savedEmail || userEmail.value
+
+  if (!email) {
+    ElMessageBox.prompt('请输入您的邮箱地址', '邮件提醒', {
+      confirmButtonText: '发送',
+      cancelButtonText: '取消',
+      inputPattern: /[^@]+@[^@]+\.[^@]+/,
+      inputErrorMessage: '请输入正确的邮箱地址'
+    }).then(({ value }) => {
+      userEmail.value = value
+      localStorage.setItem('user_email', value)
+      sendEmailReminder(urgentItems, expiredItems, value)
+      ElMessage.success('已打开邮件客户端')
+    }).catch(() => {
+      // 用户取消
+    })
+  } else {
+    sendEmailReminder(urgentItems, expiredItems, email)
+    ElMessage.success('已打开邮件客户端')
+  }
+}
 
 // 搜索
 function handleSearch() {
@@ -357,6 +457,14 @@ async function handleDelete(id: string) {
   }
 }
 
+.reminder-card {
+  margin-bottom: 12px;
+
+  :deep(.el-card__body) {
+    padding: 8px 12px;
+  }
+}
+
 .items-list {
   .list-header {
     display: flex;
@@ -419,6 +527,19 @@ async function handleDelete(id: string) {
         color: #f56c6c;
       }
     }
+  }
+}
+
+// 提醒弹窗样式
+:deep(.reminder-message-box) {
+  .el-message-box__message {
+    white-space: pre-line;
+    line-height: 1.8;
+    font-size: 14px;
+  }
+
+  .el-message-box__content {
+    padding: 20px;
   }
 }
 </style>
