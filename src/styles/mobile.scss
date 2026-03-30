@@ -1,0 +1,61 @@
+// iOS 风格移动端适配
+
+@media (max-width: 768px) {
+  // 更大的圆角
+  .el-card {
+    border-radius: 12px !important;
+  }
+
+  .el-button {
+    border-radius: 8px !important;
+  }
+
+  .el-input__wrapper,
+  .el-select .el-input__wrapper,
+  .el-date-editor .el-input__wrapper {
+    border-radius: 8px !important;
+  }
+
+  .el-dialog {
+    border-radius: 12px !important;
+  }
+
+  // iOS 风格输入框
+  .el-input__wrapper {
+    box-shadow: 0 0 0 1px #dcdfe6 inset !important;
+    transition: all 0.3s;
+
+    &:hover {
+      box-shadow: 0 0 0 1px #c0c4cc inset !important;
+    }
+
+    &.is-focus {
+      box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+    }
+  }
+
+  // iOS 风格按钮
+  .el-button {
+    font-weight: 500;
+    letter-spacing: 0.3px;
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
+  // 卡片阴影
+  .el-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+    }
+  }
+
+  // 安全区域适配（刘海屏）
+  .home-container {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

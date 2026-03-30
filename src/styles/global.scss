@@ -1,0 +1,96 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f5f5;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+// 移动端适配
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+
+  // Element Plus 移动端样式调整
+  .el-card {
+    border-radius: 12px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+    }
+  }
+
+  .el-button {
+    border-radius: 8px !important;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
+  .el-input__wrapper,
+  .el-select .el-input__wrapper,
+  .el-date-editor .el-input__wrapper {
+    border-radius: 8px !important;
+  }
+
+  .el-dialog {
+    border-radius: 12px !important;
+    width: 95% !important;
+    max-width: none !important;
+  }
+
+  // iOS 风格输入框
+  .el-input__wrapper {
+    box-shadow: 0 0 0 1px #dcdfe6 inset !important;
+    transition: all 0.3s;
+
+    &:hover {
+      box-shadow: 0 0 0 1px #c0c4cc inset !important;
+    }
+
+    &.is-focus {
+      box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+    }
+  }
+
+  // 安全区域适配（刘海屏）
+  .home-container {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+// iOS 风格滚动条
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
