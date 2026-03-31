@@ -186,7 +186,7 @@ import StatsCard from '@/components/StatsCard.vue'
 import ItemCard from '@/components/ItemCard.vue'
 import ItemForm from '@/components/ItemForm.vue'
 import { calculateProfit } from '@/utils/profit'
-import { getUrgentItems, getExpiredItems, getReminderMessage, sendEmailReminder } from '@/utils/reminder'
+import { getUrgentItems, getExpiredItems, getReminderMessage, sendEmailReminder, generateEmailContent } from '@/utils/reminder'
 import type { Item } from '@/types'
 
 const itemsStore = useItemsStore()
