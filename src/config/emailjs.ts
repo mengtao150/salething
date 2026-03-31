@@ -23,7 +23,7 @@ export const emailJsConfig = {
 
   // Template ID - 需要在 EmailJS 控制台创建模板
   // 访问: https://dashboard.emailjs.com/admin/templates
-  templateId: 'YOUR_EMAILJS_TEMPLATE_ID',
+  templateId: 'template_v8h2ym6',
 
   // 目标邮箱
   targetEmail: '2640622467@qq.com',
