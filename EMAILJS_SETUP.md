@@ -15,42 +15,69 @@ EmailJS 是一个免费的前端邮件服务，可以：
 2. 点击 **Sign Up** 注册账号
 3. 注册后登录邮箱验证
 
-### 2. 添加邮件服务
-
-在 EmailJS 控制台添加邮件服务：
-
-**推荐使用 Gmail（免费）：**
+### 2. 添加邮件服务（QQ 邮箱）
 
 1. 在 EmailJS 控制台，点击 **Email Services**
 2. 点击 **Add New Service**
-3. 选择 **Gmail**
-4. 点击 **Connect Account** 连接你的 Gmail 账号
-5. 授权 EmailJS 访问你的 Gmail
+3. 选择 **Custom SMTP**（使用 QQ 邮箱）
+4. 填写以下信息：
+   ```
+   SMTP Host: smtp.qq.com
+   Port: 465 或 587
+   Username: 你的QQ邮箱（如 2640622467@qq.com）
+   Password: QQ邮箱授权码（不是QQ密码！）
+   From Name: 得物倒卖
+   ```
+5. 点击 **Save**
 
-**如果不想用 Gmail，可以使用其他服务：**
-- Yahoo Mail
-- Outlook
-- 或其他 EmailJS 支持的服务
+**如何获取 QQ 邮箱授权码：**
+- 登录 QQ 邮箱 → 设置 → 账户
+- 开启 SMTP 服务
+- 生成授权码（通过手机验证）
 
-### 3. 获取密钥
+### 3. 创建邮件模板（重要！）
+
+1. 在 EmailJS 控制台，点击 **Email Templates**
+2. 点击 **Create New Template**
+3. 填写模板信息：
+   - **Template Name**: 得物倒卖提醒
+   - **Subject**: `{{subject}}`
+   - **To Email**: `{{to_email}}`
+   - **Content** (HTML 格式):
+     ```html
+     <!DOCTYPE html>
+     <html>
+     <head>
+       <meta charset="UTF-8">
+     </head>
+     <body>
+       {{{message}}}
+     </body>
+     </html>
+     ```
+4. 点击 **Save**
+5. 复制生成的 **Template ID**
+
+### 4. 获取密钥
 
 1. 在 EmailJS 控制台，找到 **Account** → **General**
 2. 复制 **Public Key**
 3. 在控制台首页，复制 **Service ID**
 
-### 4. 更新项目配置
+### 5. 更新项目配置
 
 编辑 `src/config/emailjs.ts` 文件：
 
 ```typescript
 export const emailJsConfig = {
-  publicKey: '你的_Public_Key',        // 从步骤3获取
-  serviceId: '你的_Service_ID',        // 从步骤3获取
-  templateId: ''  // 可选
+  publicKey: '你的_Public_Key',        // 从步骤4获取
+  serviceId: '你的_Service_ID',        // 从步骤4获取
+  templateId: '你的_Template_ID',      // 从步骤3获取（重要！）
+  targetEmail: '2640622467@qq.com'
 }
 ```
 
-### 5. 测试邮件功能
+### 6. 测试邮件功能
 
 1. 刷新页面
 2. 点击 **📧 测试邮件提醒** 按钮
@@ -70,10 +97,16 @@ export const emailJsConfig = {
 
 ## 故障排除
 
+**错误：The template ID not found**
+- 这是配置错误，需要创建邮件模板
+- 按照步骤3操作创建模板
+- 将 Template ID 填入配置文件
+
 **问题：邮件发送失败**
 - 检查网络连接
 - 确认 EmailJS 配置正确
 - 查看浏览器控制台错误信息
+- 确认已创建邮件模板
 
 **问题：收不到邮件**
 - 检查垃圾邮件文件夹

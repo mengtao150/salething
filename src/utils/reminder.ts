@@ -106,7 +106,7 @@ export function generateHtmlEmail(urgentItems: Item[], expiredItems: Item[]): st
 export async function sendEmailReminder(urgentItems: Item[], expiredItems: Item[], userEmail: string) {
   // 检查是否已配置
   if (!isEmailJsConfigured()) {
-    ElMessage.warning('EmailJS 未配置，将打开邮件客户端')
+    ElMessage.warning('EmailJS 未完全配置，将打开邮件客户端')
     openMailtoReminder(urgentItems, expiredItems, userEmail)
     return false
   }
@@ -120,10 +120,10 @@ export async function sendEmailReminder(urgentItems: Item[], expiredItems: Item[
 
     const subject = urgentItems.length > 0 ? '🔔 商品即将超期提醒' : '⚠️ 商品已超期提醒'
 
-    // 发送邮件 - EmailJS 需要使用特定的模板参数
+    // 发送邮件 - 使用配置的模板 ID
     const response = await emailjs.default.send(
       emailJsConfig.serviceId,
-      'template_default', // 使用默认模板或创建自定义模板
+      emailJsConfig.templateId,
       {
         to_email: userEmail,
         to_name: userEmail.split('@')[0],
@@ -135,9 +135,16 @@ export async function sendEmailReminder(urgentItems: Item[], expiredItems: Item[
     console.log('EmailJS 响应:', response)
     ElMessage.success('✅ 邮件已发送到 ' + userEmail)
     return true
-  } catch (error) {
+  } catch (error: any) {
     console.error('邮件发送失败:', error)
-    ElMessage.error('❌ 邮件发送失败，将打开邮件客户端')
+
+    // 提供更详细的错误信息
+    let errorMsg = '❌ 邮件发送失败'
+    if (error.text?.includes('template')) {
+      errorMsg += '\n\n错误原因：Email 模板未配置\n\n请按以下步骤操作：\n1. 访问 https://dashboard.emailjs.com/admin/templates\n2. 创建新模板\n3. 模板变量：{{to_email}}, {{to_name}}, {{subject}}, {{message}}\n4. 将 Template ID 填入 src/config/emailjs.ts'
+    }
+
+    ElMessage.error(errorMsg)
     // 失败时回退到 mailto
     openMailtoReminder(urgentItems, expiredItems, userEmail)
     return false
