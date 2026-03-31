@@ -186,7 +186,8 @@ import StatsCard from '@/components/StatsCard.vue'
 import ItemCard from '@/components/ItemCard.vue'
 import ItemForm from '@/components/ItemForm.vue'
 import { calculateProfit } from '@/utils/profit'
-import { getUrgentItems, getExpiredItems, getReminderMessage, sendEmailReminder, generateEmailContent } from '@/utils/reminder'
+import { getUrgentItems, getExpiredItems, getReminderMessage, sendEmailReminder } from '@/utils/reminder'
+import { emailJsConfig } from '@/config/emailjs'
 import type { Item } from '@/types'
 
 const itemsStore = useItemsStore()
@@ -340,24 +341,24 @@ function testEmailReminder() {
     updatedAt: new Date().toISOString()
   }
 
-  // 直接使用测试邮箱发送邮件
-  const testEmail = '2640622467@qq.com'
+  // 使用配置的目标邮箱
+  const testEmail = emailJsConfig.targetEmail || '2640622467@qq.com'
   localStorage.setItem('user_email', testEmail) // 保存邮箱
 
-  const { subject, body } = generateEmailContent([testItem], [])
-  const mailtoLink = `mailto:${testEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-
   ElMessageBox.confirm(
-    '即将打开邮件客户端，请点击发送按钮完成测试。\n\n收件人：' + testEmail,
+    `即将发送测试邮件到：${testEmail}\n\n测试内容：一个即将超期的商品`,
     '📧 测试邮件提醒',
     {
-      confirmButtonText: '打开邮件客户端',
+      confirmButtonText: '发送测试邮件',
       cancelButtonText: '取消',
       type: 'info'
     }
-  ).then(() => {
-    window.open(mailtoLink, '_blank')
-    ElMessage.success('请在邮件客户端中点击发送按钮')
+  ).then(async () => {
+    ElMessage.info('正在发送测试邮件...')
+    const success = await sendEmailReminder([testItem], [], testEmail)
+    if (success) {
+      ElMessage.success('✅ 测试邮件已发送，请查收 ' + testEmail)
+    }
   }).catch(() => {
     // 用户取消
   })

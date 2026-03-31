@@ -1,8 +1,7 @@
 import type { Item } from '@/types'
 import { getCountdown } from './countdown'
-import emailjs from '@emailjs/browser'
-import { emailJsConfig, isEmailJsConfigured } from '@/config/emailjs'
 import { ElMessage } from 'element-plus'
+import { emailJsConfig, isEmailJsConfigured } from '@/config/emailjs'
 
 // 检查需要提醒的商品（剩余时间 < 1天）
 export function getUrgentItems(items: Item[]): Item[] {
@@ -41,8 +40,8 @@ export function getReminderMessage(urgentItems: Item[], expiredItems: Item[]): s
   return messages.join('\n\n')
 }
 
-// 生成邮件内容（HTML格式）
-function generateHtmlEmail(urgentItems: Item[], expiredItems: Item[]): string {
+// 生成 HTML 格式邮件内容
+export function generateHtmlEmail(urgentItems: Item[], expiredItems: Item[]): string {
   let content = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px 10px 0 0;">
@@ -105,52 +104,42 @@ function generateHtmlEmail(urgentItems: Item[], expiredItems: Item[]): string {
 
 // 使用 EmailJS 发送邮件
 export async function sendEmailReminder(urgentItems: Item[], expiredItems: Item[], userEmail: string) {
-  // 检查是否配置了 EmailJS
+  // 检查是否已配置
   if (!isEmailJsConfigured()) {
-    ElMessage.error('EmailJS 未配置，请联系管理员配置邮件服务')
-    // 回退到 mailto 方式
-    const { subject, body } = generateEmailContent(urgentItems, expiredItems)
-    const mailtoLink = `mailto:${userEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-    window.open(mailtoLink, '_blank')
-    return
+    ElMessage.warning('EmailJS 未配置，将打开邮件客户端')
+    openMailtoReminder(urgentItems, expiredItems, userEmail)
+    return false
   }
 
+  // 动态导入 EmailJS（只在需要时加载）
   try {
+    const emailjs = await import('@emailjs/browser')
+
     // 初始化 EmailJS
-    emailjs.init(emailJsConfig.publicKey)
+    emailjs.default.init(emailJsConfig.publicKey)
 
     const subject = urgentItems.length > 0 ? '🔔 商品即将超期提醒' : '⚠️ 商品已超期提醒'
 
-    const templateParams = {
-      to_email: userEmail,
-      subject: subject,
-      content: generateHtmlEmail(urgentItems, expiredItems),
-      from_name: '得物倒卖助手'
-    }
-
-    // 发送邮件
-    const response = await emailjs.send(
+    // 发送邮件 - EmailJS 需要使用特定的模板参数
+    const response = await emailjs.default.send(
       emailJsConfig.serviceId,
-      'default_service',
+      'template_default', // 使用默认模板或创建自定义模板
       {
-        to: userEmail,
+        to_email: userEmail,
+        to_name: userEmail.split('@')[0],
         subject: subject,
-        html: generateHtmlEmail(urgentItems, expiredItems)
-      },
-      {
-        publicKey: emailJsConfig.publicKey
+        message: generateHtmlEmail(urgentItems, expiredItems)
       }
     )
 
-    ElMessage.success('✅ 邮件已发送！')
+    console.log('EmailJS 响应:', response)
+    ElMessage.success('✅ 邮件已发送到 ' + userEmail)
     return true
   } catch (error) {
     console.error('邮件发送失败:', error)
-    ElMessage.error('❌ 邮件发送失败：' + (error as any).text || error)
+    ElMessage.error('❌ 邮件发送失败，将打开邮件客户端')
     // 失败时回退到 mailto
-    const { subject, body } = generateEmailContent(urgentItems, expiredItems)
-    const mailtoLink = `mailto:${userEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-    window.open(mailtoLink, '_blank')
+    openMailtoReminder(urgentItems, expiredItems, userEmail)
     return false
   }
 }
@@ -184,7 +173,7 @@ function generateEmailContent(urgentItems: Item[], expiredItems: Item[]): { subj
   }
 }
 
-// 保留原有的 mailto 方式
+// 打开邮件客户端（备用方案）
 export function openMailtoReminder(urgentItems: Item[], expiredItems: Item[], userEmail: string) {
   const { subject, body } = generateEmailContent(urgentItems, expiredItems)
   const mailtoLink = `mailto:${userEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
