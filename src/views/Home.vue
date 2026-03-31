@@ -256,30 +256,40 @@ onMounted(async () => {
   checkReminders()
 })
 
-// 检查倒计时提醒
-function checkReminders() {
+// 检查倒计时提醒（自动发送邮件）
+async function checkReminders() {
   const allItems = itemsStore.allItems
   const urgentItems = getUrgentItems(allItems)
   const expiredItems = getExpiredItems(allItems)
 
   if (urgentItems.length > 0 || expiredItems.length > 0) {
-    const message = getReminderMessage(urgentItems, expiredItems)
+    // 使用配置的目标邮箱或已保存的邮箱
+    const savedEmail = localStorage.getItem('user_email')
+    const email = savedEmail || emailJsConfig.targetEmail || '2640622467@qq.com'
 
-    ElMessageBox.confirm(
-      message,
+    // 自动发送邮件提醒
+    const success = await sendEmailReminder(urgentItems, expiredItems, email)
+
+    if (success) {
+      // 显示通知告知用户已发送邮件
+      const itemCount = urgentItems.length + expiredItems.length
+      ElMessage.success(
+        `✅ 已自动发送邮件提醒到 ${email}\n` +
+        `${urgentItems.length}件即将超期，${expiredItems.length}件已超期`
+      )
+    }
+
+    // 同时显示简短的通知
+    const message = getReminderMessage(urgentItems, expiredItems)
+    ElMessageBox.alert(
+      message + '\n\n邮件提醒已自动发送到：' + email,
       '⏰ 退货倒计时提醒',
       {
-        confirmButtonText: '发送邮件提醒',
-        cancelButtonText: '我知道了',
+        confirmButtonText: '我知道了',
         type: urgentItems.length > 0 ? 'warning' : 'info',
         customClass: 'reminder-message-box'
       }
-    ).then(() => {
-      // 用户点击了发送邮件
-      handleSendEmailReminder(urgentItems, expiredItems)
-    }).catch(() => {
-      // 用户点击了取消或关闭
-    })
+    ).catch(() => {})
   }
 }
 
