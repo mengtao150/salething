@@ -7,9 +7,18 @@
 
     <!-- 提醒按钮 -->
     <el-card class="reminder-card" shadow="never">
-      <el-button type="warning" :icon="Bell" @click="manualCheckReminders" style="width: 100%">
-        🔔 检查倒计时提醒
-      </el-button>
+      <el-row :gutter="12">
+        <el-col :span="12">
+          <el-button type="warning" :icon="Bell" @click="manualCheckReminders" style="width: 100%">
+            🔔 检查倒计时提醒
+          </el-button>
+        </el-col>
+        <el-col :span="12">
+          <el-button type="info" @click="testEmailReminder" style="width: 100%">
+            📧 测试邮件提醒
+          </el-button>
+        </el-col>
+      </el-row>
     </el-card>
 
     <!-- 操作栏 -->
@@ -312,26 +321,46 @@ function manualCheckReminders() {
 
   checkReminders()
 }
-  const email = savedEmail || userEmail.value
 
-  if (!email) {
-    ElMessageBox.prompt('请输入您的邮箱地址', '邮件提醒', {
-      confirmButtonText: '发送',
-      cancelButtonText: '取消',
-      inputPattern: /[^@]+@[^@]+\.[^@]+/,
-      inputErrorMessage: '请输入正确的邮箱地址'
-    }).then(({ value }) => {
-      userEmail.value = value
-      localStorage.setItem('user_email', value)
-      sendEmailReminder(urgentItems, expiredItems, value)
-      ElMessage.success('已打开邮件客户端')
-    }).catch(() => {
-      // 用户取消
-    })
-  } else {
-    sendEmailReminder(urgentItems, expiredItems, email)
-    ElMessage.success('已打开邮件客户端')
+// 测试邮件提醒功能（强制触发）
+function testEmailReminder() {
+  // 创建一个模拟的紧急商品用于测试
+  const testItem: Item = {
+    id: 'test-123',
+    name: '测试商品-立即处理',
+    platform: '淘宝',
+    buyPrice: 100,
+    buyTime: new Date().toISOString(),
+    expectedSellPrice: 150,
+    shippingFee: 5,
+    received: true,
+    receivedTime: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(), // 6天前收货
+    sold: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   }
+
+  // 直接使用测试邮箱发送邮件
+  const testEmail = '2640622467@qq.com'
+  localStorage.setItem('user_email', testEmail) // 保存邮箱
+
+  const { subject, body } = generateEmailContent([testItem], [])
+  const mailtoLink = `mailto:${testEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+
+  ElMessageBox.confirm(
+    '即将打开邮件客户端，请点击发送按钮完成测试。\n\n收件人：' + testEmail,
+    '📧 测试邮件提醒',
+    {
+      confirmButtonText: '打开邮件客户端',
+      cancelButtonText: '取消',
+      type: 'info'
+    }
+  ).then(() => {
+    window.open(mailtoLink, '_blank')
+    ElMessage.success('请在邮件客户端中点击发送按钮')
+  }).catch(() => {
+    // 用户取消
+  })
 }
 
 // 搜索
