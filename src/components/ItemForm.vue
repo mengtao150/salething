@@ -32,11 +32,11 @@
       />
     </el-form-item>
 
-    <el-form-item label="购入时间" prop="buyTime">
+    <el-form-item label="收货时间" prop="receivedTime">
       <el-date-picker
-        v-model="formData.buyTime"
+        v-model="formData.receivedTime"
         type="datetime"
-        placeholder="选择时间"
+        placeholder="选择收货时间"
         style="width: 100%"
         format="YYYY-MM-DD HH:mm"
       />
@@ -66,22 +66,6 @@
 
     <!-- 编辑模式额外字段 -->
     <template v-if="editMode">
-      <el-divider>收货信息</el-divider>
-
-      <el-form-item label="已收货">
-        <el-switch v-model="formData.received" />
-      </el-form-item>
-
-      <el-form-item v-if="formData.received" label="收货时间">
-        <el-date-picker
-          v-model="formData.receivedTime"
-          type="datetime"
-          placeholder="收货时间"
-          style="width: 100%"
-          format="YYYY-MM-DD HH:mm"
-        />
-      </el-form-item>
-
       <el-divider>卖出信息</el-divider>
 
       <el-form-item label="已卖出">
@@ -112,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, computed } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { Item, Platform } from '@/types'
 
@@ -131,27 +115,14 @@ const formData = reactive({
   name: props.item?.name || '',
   platform: (props.item?.platform || '淘宝') as Platform,
   buyPrice: props.item?.buyPrice || 0,
-  buyTime: props.item ? new Date(props.item.buyTime) : new Date(),
+  buyTime: props.item?.buyTime || new Date().toISOString(),
   expectedSellPrice: props.item?.expectedSellPrice,
   shippingFee: props.item?.shippingFee,
-  received: props.item?.received || false,
+  received: props.item?.receivedTime ? true : false,
   receivedTime: props.item?.receivedTime ? new Date(props.item.receivedTime) : undefined,
   sold: props.item?.sold || false,
   actualSellPrice: props.item?.actualSellPrice,
   sellTime: props.item?.sellTime ? new Date(props.item.sellTime) : undefined
-})
-
-// 监听收货状态变化，自动设置收货时间
-watch(() => formData.received, (newVal) => {
-  if (newVal) {
-    // 如果已收货但没有收货时间，设置为当前时间
-    if (!formData.receivedTime) {
-      formData.receivedTime = new Date()
-    }
-  } else {
-    // 如果取消收货，清空收货时间
-    formData.receivedTime = undefined
-  }
 })
 
 const rules: FormRules = {
@@ -164,8 +135,8 @@ const rules: FormRules = {
   buyPrice: [
     { required: true, message: '请输入买入价格', trigger: 'blur' }
   ],
-  buyTime: [
-    { required: true, message: '请选择购入时间', trigger: 'change' }
+  receivedTime: [
+    { required: true, message: '请选择收货时间', trigger: 'change' }
   ]
 }
 
@@ -175,21 +146,15 @@ async function submit() {
   try {
     await formRef.value.validate()
 
-    // 如果已收货但没有收货时间，使用当前时间
-    let receivedTime = formData.receivedTime
-    if (formData.received && !receivedTime) {
-      receivedTime = new Date()
-    }
-
     const submitData = {
       name: formData.name,
       platform: formData.platform,
       buyPrice: formData.buyPrice,
-      buyTime: new Date(formData.buyTime as Date).toISOString(),
+      buyTime: new Date().toISOString(),
       expectedSellPrice: formData.expectedSellPrice,
       shippingFee: formData.shippingFee,
-      received: formData.received,
-      receivedTime: receivedTime ? new Date(receivedTime as Date).toISOString() : undefined,
+      received: !!formData.receivedTime,
+      receivedTime: formData.receivedTime ? new Date(formData.receivedTime as Date).toISOString() : undefined,
       sold: formData.sold,
       actualSellPrice: formData.actualSellPrice,
       sellTime: formData.sellTime ? new Date(formData.sellTime as Date).toISOString() : undefined

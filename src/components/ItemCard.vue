@@ -21,13 +21,13 @@
         <span class="value" :class="{ 'sold-value': item.sold }">¥{{ item.expectedSellPrice.toFixed(2) }}</span>
       </div>
 
-      <div class="info-row">
-        <span class="label">购入：</span>
-        <span class="value" :class="{ 'sold-value': item.sold }">{{ formatDate(item.buyTime) }}</span>
+      <div class="info-row" v-if="item.receivedTime">
+        <span class="label">收货：</span>
+        <span class="value" :class="{ 'sold-value': item.sold }">{{ formatDate(item.receivedTime) }}</span>
       </div>
 
-      <div class="countdown-row">
-        <span class="countdown-label">{{ item.received ? '退货倒计时' : '收货状态' }}:</span>
+      <div class="countdown-row" v-if="item.receivedTime">
+        <span class="countdown-label">退货倒计时:</span>
         <Countdown :received-time="item.receivedTime" />
       </div>
 
@@ -44,15 +44,7 @@
     <template #footer>
       <div class="card-actions">
         <el-button
-          v-if="!item.received"
-          type="primary"
-          size="small"
-          @click="handleReceive"
-        >
-          确认收货
-        </el-button>
-        <el-button
-          v-if="item.received && !item.sold"
+          v-if="item.receivedTime && !item.sold"
           type="success"
           size="small"
           @click="handleSell"
@@ -91,7 +83,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  receive: [id: string]
   sell: [id: string]
   edit: [item: Item]
   delete: [id: string]
@@ -102,10 +93,6 @@ const profit = computed(() => calculateProfit(props.item))
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr)
   return `${date.getMonth() + 1}/${date.getDate()}`
-}
-
-function handleReceive() {
-  emit('receive', props.item.id)
 }
 
 function handleSell() {

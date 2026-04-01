@@ -71,7 +71,6 @@
         <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="item in displayItems" :key="item.id">
           <ItemCard
             :item="item"
-            @receive="handleReceive"
             @sell="handleSell"
             @edit="handleEdit"
             @delete="handleDelete"
@@ -408,12 +407,6 @@ async function handleConfirmAdd() {
 // 添加提交
 async function handleAddSubmit(data: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>) {
   await itemsStore.addItem(data)
-}
-
-// 确认收货
-async function handleReceive(id: string) {
-  await itemsStore.confirmReceive(id)
-  ElMessage.success('已确认收货，倒计时开始')
 }
 
 // 确认卖出
