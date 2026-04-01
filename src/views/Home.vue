@@ -186,6 +186,7 @@ import ItemCard from '@/components/ItemCard.vue'
 import ItemForm from '@/components/ItemForm.vue'
 import { calculateProfit } from '@/utils/profit'
 import { getUrgentItems, getExpiredItems, getReminderMessage, sendEmailReminder } from '@/utils/reminder'
+import { getCountdown } from '@/utils/countdown'
 import { emailJsConfig } from '@/config/emailjs'
 import type { Item } from '@/types'
 
@@ -242,8 +243,48 @@ const displayItems = computed(() => {
     items = itemsStore.getItemsByStatus(filterStatus.value)
   }
 
-  // 按更新时间倒序
-  return items.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  // 排序：优先按剩余时间，未卖出在前，已卖出在后
+  return items.sort((a, b) => {
+    // 1. 先按卖出状态分组：未卖出在前，已卖出在后
+    if (a.sold !== b.sold) {
+      return a.sold ? 1 : -1
+    }
+
+    // 2. 对于未卖出的商品，按剩余时间排序
+    if (!a.sold && !b.sold) {
+      const aCountdown = a.receivedTime ? getCountdown(a.receivedTime) : null
+      const bCountdown = b.receivedTime ? getCountdown(b.receivedTime) : null
+
+      // 都有收货时间，按剩余时间排序（剩余时间少的在前）
+      if (aCountdown && bCountdown) {
+        // 计算总剩余分钟数
+        const aMinutes = (aCountdown.days || 0) * 24 * 60 + (aCountdown.hours || 0) * 60 + (aCountdown.minutes || 0)
+        const bMinutes = (bCountdown.days || 0) * 24 * 60 + (bCountdown.hours || 0) * 60 + (bCountdown.minutes || 0)
+
+        // 已超期的排在最前面（因为最紧急）
+        if (aCountdown.isExpired && bCountdown.isExpired) {
+          return 0
+        }
+        if (aCountdown.isExpired) return -1
+        if (bCountdown.isExpired) return 1
+
+        return aMinutes - bMinutes
+      }
+
+      // 有收货时间的在前，没有收货时间的在后
+      if (aCountdown && !bCountdown) return -1
+      if (!aCountdown && bCountdown) return 1
+    }
+
+    // 3. 对于已卖出的商品，按卖出时间倒序
+    if (a.sold && b.sold) {
+      const aTime = a.sellTime ? new Date(a.sellTime).getTime() : 0
+      const bTime = b.sellTime ? new Date(b.sellTime).getTime() : 0
+      return bTime - aTime
+    }
+
+    return 0
+  })
 })
 
 onMounted(async () => {
