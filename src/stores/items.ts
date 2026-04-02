@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { v4 as uuidv4 } from 'uuid'
 import type { Item, Platform, ItemStatus, Stats } from '@/types'
 import { storageApi } from '@/api/storage'
 import { calculateProfit } from '@/utils/profit'
@@ -178,6 +177,21 @@ export const useItemsStore = defineStore('items', () => {
   }
 })
 
+// 生成顺序ID（从现有数据中找出最大ID+1）
 function generateId(): string {
-  return uuidv4()
+  if (items.value.length === 0) {
+    return '1'
+  }
+
+  // 找出所有数字类型的ID
+  const numericIds = items.value
+    .map(item => parseInt(item.id))
+    .filter(id => !isNaN(id))
+
+  if (numericIds.length === 0) {
+    return '1'
+  }
+
+  const maxId = Math.max(...numericIds)
+  return String(maxId + 1)
 }
