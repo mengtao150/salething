@@ -1,5 +1,8 @@
 <template>
   <el-card class="item-card" :class="{ sold: item.sold }" shadow="hover">
+    <!-- 编号标记 -->
+    <div class="id-badge">#{{ item.id }}</div>
+
     <!-- 已卖出标记 -->
     <div v-if="item.sold" class="sold-badge">已卖出</div>
 
@@ -180,6 +183,20 @@ function handleDelete() {
     padding: 8px 12px;
     border-top: 1px solid #f0f0f0;
   }
+}
+
+// 编号标记
+.id-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #409eff;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  z-index: 2;
 }
 
 // 已卖出标记
