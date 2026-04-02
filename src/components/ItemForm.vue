@@ -7,6 +7,16 @@
     label-position="left"
     class="item-form"
   >
+    <!-- 语音输入区域 (仅添加模式显示) -->
+    <el-form-item v-if="!editMode" class="voice-input-section">
+      <div class="voice-input-container">
+        <VoiceRecordButton @recording-complete="handleVoiceInput" />
+        <el-text size="small" style="margin-left: 12px">
+          点击麦克风开始录音，描述商品信息（如："我在淘宝买了iPhone 15 Pro，花了2999元"）
+        </el-text>
+      </div>
+    </el-form-item>
+
     <el-form-item label="物品名称" prop="name">
       <el-input v-model="formData.name" placeholder="请输入物品名称" />
     </el-form-item>
@@ -93,12 +103,22 @@
       </el-form-item>
     </template>
   </el-form>
+
+  <!-- AI 提取结果预览对话框 -->
+  <ExtractedDataPreview
+    v-model="showPreviewDialog"
+    :voice-text="currentVoiceText"
+    @confirm="handleExtractedDataConfirm"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { Item, Platform } from '@/types'
+import VoiceRecordButton from '@/components/VoiceRecordButton.vue'
+import ExtractedDataPreview from '@/components/ExtractedDataPreview.vue'
+import type { ExtractedItemData } from '@/utils/aiExtractor'
 
 const props = defineProps<{
   item?: Item
@@ -110,6 +130,10 @@ const emit = defineEmits<{
 
 const formRef = ref<FormInstance>()
 const editMode = computed(() => !!props.item)
+
+// 语音输入相关状态
+const showPreviewDialog = ref(false)
+const currentVoiceText = ref('')
 
 const formData = reactive({
   name: props.item?.name || '',
@@ -138,6 +162,22 @@ const rules: FormRules = {
   receivedTime: [
     { required: true, message: '请选择收货时间', trigger: 'change' }
   ]
+}
+
+// 处理语音输入完成
+function handleVoiceInput(text: string) {
+  currentVoiceText.value = text
+  showPreviewDialog.value = true
+}
+
+// 处理 AI 提取数据确认
+function handleExtractedDataConfirm(data: ExtractedItemData) {
+  // 填充表单数据
+  formData.name = data.name
+  formData.platform = data.platform
+  formData.buyPrice = data.buyPrice
+  formData.expectedSellPrice = data.expectedSellPrice
+  formData.shippingFee = data.shippingFee
 }
 
 async function submit() {
@@ -184,10 +224,35 @@ defineExpose({
   }
 }
 
+.voice-input-section {
+  :deep(.el-form-item__content) {
+    display: block;
+  }
+}
+
+.voice-input-container {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf3 100%);
+  border-radius: 8px;
+  border: 1px solid #d9d9d9;
+}
+
 @media (max-width: 768px) {
   .item-form {
     :deep(.el-form-item__label) {
       width: 70px !important;
+    }
+  }
+
+  .voice-input-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+
+    .el-text {
+      margin-left: 0 !important;
     }
   }
 }
