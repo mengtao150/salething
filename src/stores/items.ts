@@ -53,7 +53,7 @@ export const useItemsStore = defineStore('items', () => {
   async function addItem(item: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>) {
     const newItem: Item = {
       ...item,
-      id: generateId(),
+      id: generateId(items.value),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -178,13 +178,13 @@ export const useItemsStore = defineStore('items', () => {
 })
 
 // 生成顺序ID（从现有数据中找出最大ID+1）
-function generateId(): string {
-  if (items.value.length === 0) {
+function generateId(currentItems: Item[]): string {
+  if (currentItems.length === 0) {
     return '1'
   }
 
   // 找出所有数字类型的ID
-  const numericIds = items.value
+  const numericIds = currentItems
     .map(item => parseInt(item.id))
     .filter(id => !isNaN(id))
 
