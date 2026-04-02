@@ -13,6 +13,10 @@ export const useItemsStore = defineStore('items', () => {
     loading.value = true
     try {
       items.value = await storageApi.getItems()
+      console.log('加载商品数量:', items.value.length)
+    } catch (error) {
+      console.error('加载商品失败:', error)
+      items.value = []
     } finally {
       loading.value = false
     }
