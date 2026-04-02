@@ -173,6 +173,7 @@ function handleDelete() {
 
   :deep(.el-card__header) {
     padding: 12px;
+    padding-left: 50px; // 为编号腾出空间
   }
 
   :deep(.el-card__body) {
