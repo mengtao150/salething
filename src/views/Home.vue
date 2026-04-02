@@ -289,9 +289,6 @@ const displayItems = computed(() => {
 
 onMounted(async () => {
   await itemsStore.init()
-  console.log('加载的物品数量:', itemsStore.allItems.length)
-  console.log('所有物品:', itemsStore.allItems)
-
   // 检查提醒
   checkReminders()
 })
