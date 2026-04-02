@@ -6,13 +6,25 @@ const TABLE_NAME = 'items'
 class StorageAPI {
   // 获取所有物品
   async getItems(): Promise<Item[]> {
+    console.log('开始从 Supabase 加载数据...')
+
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
       .order('updated_at', { ascending: false })
 
-    if (error) throw error
-    return this.transformFromDB(data || [])
+    console.log('Supabase 响应:', { data, error })
+
+    if (error) {
+      console.error('Supabase 查询错误:', error)
+      throw error
+    }
+
+    console.log('原始数据条数:', data?.length || 0)
+    const transformed = this.transformFromDB(data || [])
+    console.log('转换后数据条数:', transformed.length)
+
+    return transformed
   }
 
   // 添加物品
