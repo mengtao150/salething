@@ -157,8 +157,6 @@ export async function startSpeechRecognition(options: SpeechRecognitionOptions):
             domain: 'slm',
             language: 'zh_cn',
             accent: 'mandarin',
-            encoding: 'raw',
-            sample_rate: 16000,
             result: {
               encoding: 'utf8',
               compress: 'raw',
