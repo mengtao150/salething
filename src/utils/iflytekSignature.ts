@@ -1,33 +1,34 @@
-// 科大讯飞 API 签名生成工具
-// 文档: https://www.xfyun.cn/doc/spark/asr_llm/rtasr_llm.html
+// 科大讯飞实时语音转写 API 签名生成工具
+// 文档: https://www.xfyun.cn/doc/asr/rtasr/API.html
 
 import { iflytekConfig } from '@/config/iflytek'
 
 /**
- * 生成科大讯飞 API 签名
- * @param params 请求参数对象（不包含 signature）
- * @param apiSecret API 密钥
+ * 生成科大讯飞实时语音转写 API 签名
+ *
+ * 签名生成公式: HmacSHA1(MD5(appid + ts), apiSecret)
+ *
+ * @param appId 应用ID
+ * @param ts 当前时间戳（从1970年1月1日0点0分0秒开始到现在的秒数）
+ * @param apiKey API密钥
  * @returns Base64 编码的签名
  */
-export async function generateSignature(params: Record<string, string>, apiSecret: string): Promise<string> {
-  // 1. 将参数按 key 升序排序
-  const sortedKeys = Object.keys(params).sort()
+export async function generateSignature(
+  appId: string,
+  ts: string,
+  apiKey: string
+): Promise<string> {
+  // 1. 生成 baseString: appid + ts
+  const baseString = appId + ts
 
-  // 2. 对 key 和 value 进行 URL 编码
-  const encodedParams = sortedKeys.map(key => {
-    const encodedKey = encodeURIComponent(key)
-    const encodedValue = encodeURIComponent(params[key])
-    return `${encodedKey}=${encodedValue}`
-  })
+  // 2. 对 baseString 进行 MD5
+  const md5Hash = await md5(baseString)
 
-  // 3. 拼接参数字符串
-  const paramString = encodedParams.join('&')
+  // 3. 使用 apiSecret 对 MD5 结果进行 HmacSHA1 加密
+  const hmacSha1Signature = await hmacSha1(md5Hash, apiKey)
 
-  // 4. HmacSHA1 加密
-  const signature = await hmacSha1(paramString, apiSecret)
-
-  // 5. Base64 编码
-  return btoa(signature)
+  // 4. 进行 Base64 编码
+  return btoa(hmacSha1Signature)
 }
 
 /**
@@ -36,60 +37,39 @@ export async function generateSignature(params: Record<string, string>, apiSecre
  * @returns 完整的 WebSocket URL
  */
 export async function buildWebSocketUrl(config: typeof iflytekConfig): Promise<string> {
-  // 生成当前时间戳 (ISO 8601 格式)
-  const now = new Date()
-  const utc = formatISO8601(now)
-
-  // 构建请求参数
-  const params: Record<string, string> = {
-    appId: config.appId,
-    accessKeyId: config.apiKey,
-    utc: utc,
-    lang: 'autodialect',        // 中英+202方言混合识别
-    audio_encode: 'opus-wb',    // Opus 格式（推荐）
-    samplerate: '16000'         // 采样率 16kHz
-  }
+  // 生成当前时间戳（秒，从1970年1月1日0点0分0秒开始）
+  const ts = Math.floor(Date.now() / 1000).toString()
 
   // 生成签名
-  const signature = await generateSignature(params, config.apiSecret)
-  params.signature = signature
+  const signa = await generateSignature(config.appId, ts, config.apiKey)
 
-  // 构建 URL 查询字符串
-  const queryString = Object.keys(params)
-    .sort()
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
-    .join('&')
+  // 构建 URL 查询参数
+  const params = new URLSearchParams({
+    appid: config.appId,
+    ts: ts,
+    signa: signa,
+    lang: 'cn'  // 中文识别
+  })
 
-  return `${config.wsUrl}?${queryString}`
+  // 实时语音转写接口地址
+  return `wss://rtasr.xfyun.cn/v1/ws?${params.toString()}`
 }
 
 /**
- * 格式化时间为 ISO 8601 格式
- * @param date 日期对象
- * @returns ISO 8601 格式字符串 (如: 2025-09-04T15:38:07+0800)
+ * MD5 哈希函数
  */
-function formatISO8601(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  const seconds = String(date.getSeconds()).padStart(2, '0')
+async function md5(text: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(text)
 
-  // 获取时区偏移（分钟）
-  const offset = date.getTimezoneOffset()
-  const offsetHours = Math.abs(Math.floor(offset / 60))
-  const offsetMinutes = Math.abs(offset % 60)
-  const offsetSign = offset <= 0 ? '+' : '-'
+  const hashBuffer = await crypto.subtle.digest('MD5', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
 
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${String(offsetHours).padStart(2, '0')}${String(offsetMinutes).padStart(2, '0')}`
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
 /**
  * HmacSHA1 加密（使用 Web Crypto API）
- * @param text 待加密文本
- * @param secret 密钥
- * @returns 二进制数据转换为字符串
  */
 async function hmacSha1(text: string, secret: string): Promise<string> {
   const encoder = new TextEncoder()
@@ -110,7 +90,6 @@ async function hmacSha1(text: string, secret: string): Promise<string> {
     textData
   )
 
-  // 转换为字符串
   return Array.from(new Uint8Array(signature))
     .map(b => String.fromCharCode(b))
     .join('')
