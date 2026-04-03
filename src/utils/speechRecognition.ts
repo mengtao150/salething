@@ -43,6 +43,11 @@ export async function startSpeechRecognition(options: SpeechRecognitionOptions):
 
     // 生成 WebSocket URL
     const wsUrl = await buildWebSocketUrl(iflytekConfig)
+    console.log('=== 讯飞语音识别调试信息 ===')
+    console.log('WebSocket URL:', wsUrl)
+    console.log('AppID:', iflytekConfig.appId)
+    console.log('APIKey:', iflytekConfig.apiKey?.substring(0, 10) + '...')
+    console.log('==========================')
 
     // 建立 WebSocket 连接
     const ws = new WebSocket(wsUrl)
