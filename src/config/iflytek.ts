@@ -3,9 +3,9 @@
 
 export const iflytekConfig = {
   appId: '602059d2',
-  apiKey: 'ZDdlZTlkMjM1NjYwZjdmOTRjZDFkMDk0',
-  apiSecret: '0c762e23268f771df76fbcc611d21fe3',
-  wsUrl: 'wss://office-api-ast-dx.iflyaisol.com/ast/communicate/v1'
+  apiKey: '0c762e23268f771df76fbcc611d21fe3',  // 用于签名
+  apiSecret: 'ZDdlZTlkMjM1NjYwZjdmOTRjZDFkMDk0',  // 备用
+  wsUrl: 'wss://rtasr.xfyun.cn/v1/ws'
 }
 
 /**
