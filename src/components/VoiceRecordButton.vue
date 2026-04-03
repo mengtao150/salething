@@ -71,7 +71,7 @@ const recordingStateClass = computed(() => {
 })
 
 const tooltipContent = computed(() => {
-  if (!isSupported.value) return '您的浏览器不支持语音识别'
+  if (!isSupported.value) return '请先配置科大讯飞 API'
   if (props.disabled) return '请先配置 API'
   switch (state.value) {
     case 'idle': return '点击开始录音'
@@ -112,8 +112,8 @@ async function startRecordingFn() {
 
   state.value = 'recording'
 
-  // 开始语音识别
-  const stopFn = startSpeechRecognition({
+  // 开始语音识别（iFlytek WebSocket）
+  const stopFn = await startSpeechRecognition({
     onResult: (text) => {
       state.value = 'processing'
       emit('recordingComplete', text)
@@ -147,6 +147,12 @@ async function startRecordingFn() {
 
   if (stopFn) {
     stopRecording.value = stopFn
+  } else {
+    // 如果启动失败，重置状态
+    state.value = 'error'
+    setTimeout(() => {
+      state.value = 'idle'
+    }, 2000)
   }
 }
 
