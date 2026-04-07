@@ -154,19 +154,24 @@ function updateChart() {
       },
       formatter: (params: any) => {
         let result = `<div style="padding: 8px;"><b>${params[0].name}</b><br/>`
+        let total = 0
         params.forEach((param: any) => {
           const color = param.color.color || param.color
+          total += param.value
           result += `<div style="margin: 4px 0;">
             <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};margin-right:6px;"></span>
             ${param.seriesName}: <b>¥${param.value.toFixed(2)}</b>
           </div>`
         })
+        result += `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
+          <b>总计: ¥${total.toFixed(2)}</b>
+        </div>`
         result += '</div>'
         return result
       }
     },
     legend: {
-      data: ['买入成本', '卖出收入', '利润'],
+      data: ['利润', '卖出收入', '买入成本'],
       top: 30,
       textStyle: {
         fontSize: 13
@@ -215,6 +220,7 @@ function updateChart() {
       {
         name: '买入成本',
         type: 'bar',
+        stack: 'price',
         data: [data.buyPrice],
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -222,19 +228,22 @@ function updateChart() {
             { offset: 1, color: '#409eff' }
           ])
         },
-        barWidth: '20%',
         label: {
           show: true,
-          position: 'top',
-          formatter: (params: any) => `¥${params.value.toFixed(2)}`,
+          position: 'inside',
+          formatter: (params: any) => {
+            if (params.value === 0) return ''
+            return `¥${params.value.toFixed(0)}`
+          },
           fontSize: 12,
-          color: '#409eff',
+          color: '#fff',
           fontWeight: 'bold'
         }
       },
       {
         name: '卖出收入',
         type: 'bar',
+        stack: 'price',
         data: [data.sellPrice],
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -242,19 +251,22 @@ function updateChart() {
             { offset: 1, color: '#67c23a' }
           ])
         },
-        barWidth: '20%',
         label: {
           show: true,
-          position: 'top',
-          formatter: (params: any) => `¥${params.value.toFixed(2)}`,
+          position: 'inside',
+          formatter: (params: any) => {
+            if (params.value === 0) return ''
+            return `¥${params.value.toFixed(0)}`
+          },
           fontSize: 12,
-          color: '#67c23a',
+          color: '#fff',
           fontWeight: 'bold'
         }
       },
       {
         name: '利润',
         type: 'bar',
+        stack: 'price',
         data: [data.profit],
         itemStyle: {
           color: data.profit >= 0
@@ -267,17 +279,16 @@ function updateChart() {
                 { offset: 1, color: '#f56c6c' }
               ])
         },
-        barWidth: '20%',
         label: {
           show: true,
-          position: 'top',
+          position: 'insideTop',
           formatter: (params: any) => {
-            const value = params.value
-            const prefix = value >= 0 ? '+' : ''
-            return `${prefix}¥${value.toFixed(2)}`
+            if (params.value === 0) return ''
+            const prefix = params.value >= 0 ? '+' : ''
+            return `${prefix}¥${params.value.toFixed(0)}`
           },
-          fontSize: 12,
-          color: data.profit >= 0 ? '#e6a23c' : '#f56c6c',
+          fontSize: 13,
+          color: '#fff',
           fontWeight: 'bold'
         }
       }
