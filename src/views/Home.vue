@@ -21,6 +21,9 @@
       </el-row>
     </el-card>
 
+    <!-- 统计图表 -->
+    <ItemChart :items="itemsStore.allItems" />
+
     <!-- 操作栏 -->
     <el-card class="action-card" shadow="never">
       <el-row :gutter="12">
@@ -182,6 +185,7 @@ import { Search, Plus, Bell } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useItemsStore } from '@/stores/items'
 import StatsCard from '@/components/StatsCard.vue'
+import ItemChart from '@/components/ItemChart.vue'
 import ItemCard from '@/components/ItemCard.vue'
 import ItemForm from '@/components/ItemForm.vue'
 import { calculateProfit } from '@/utils/profit'
