@@ -305,6 +305,29 @@ async function checkReminders() {
   const expiredItems = getExpiredItems(allItems)
 
   if (urgentItems.length > 0 || expiredItems.length > 0) {
+    // 检查是否已经发送过邮件（24小时内不重复发送相同内容）
+    const lastSentTime = localStorage.getItem('last_email_sent_time')
+    const lastSentItems = localStorage.getItem('last_sent_items')
+
+    const now = Date.now()
+    const ONE_DAY = 24 * 60 * 60 * 1000
+
+    // 当前需要提醒的物品ID列表
+    const currentItemIds = [
+      ...urgentItems.map(i => i.id),
+      ...expiredItems.map(i => i.id)
+    ].sort()
+
+    const currentItemsKey = JSON.stringify(currentItemIds)
+
+    // 如果24小时内发送过相同内容的邮件，则跳过
+    if (lastSentTime && lastSentItems === currentItemsKey) {
+      const timeSinceLastSent = now - parseInt(lastSentTime)
+      if (timeSinceLastSent < ONE_DAY) {
+        console.log('邮件已在24小时内发送过，跳过')
+        return
+      }
+    }
     // 使用配置的目标邮箱或已保存的邮箱
     const savedEmail = localStorage.getItem('user_email')
     const email = savedEmail || emailJsConfig.targetEmail || '2640622467@qq.com'
@@ -313,6 +336,14 @@ async function checkReminders() {
     const success = await sendEmailReminder(urgentItems, expiredItems, email)
 
     if (success) {
+      // 记录发送时间和物品列表，防止重复发送
+      const currentItemIds = [
+        ...urgentItems.map(i => i.id),
+        ...expiredItems.map(i => i.id)
+      ].sort()
+      localStorage.setItem('last_email_sent_time', String(now))
+      localStorage.setItem('last_sent_items', JSON.stringify(currentItemIds))
+
       // 显示通知告知用户已发送邮件
       const itemCount = urgentItems.length + expiredItems.length
       ElMessage.success(
