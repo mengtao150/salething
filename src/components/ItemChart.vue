@@ -26,23 +26,30 @@
     <div class="chart-summary">
       <el-row :gutter="16">
         <el-col :span="8">
-          <div class="summary-item">
-            <span class="label">总买入</span>
-            <span class="value buy-value">¥{{ totalBuyPrice.toFixed(2) }}</span>
+          <div class="summary-item buy-summary">
+            <div class="summary-icon">💰</div>
+            <div class="summary-content">
+              <span class="label">买入成本</span>
+              <span class="value">¥{{ totalBuyPrice.toFixed(2) }}</span>
+            </div>
           </div>
         </el-col>
         <el-col :span="8">
-          <div class="summary-item">
-            <span class="label">总卖出</span>
-            <span class="value sell-value">¥{{ totalSellPrice.toFixed(2) }}</span>
+          <div class="summary-item sell-summary">
+            <div class="summary-icon">💵</div>
+            <div class="summary-content">
+              <span class="label">卖出收入</span>
+              <span class="value">¥{{ totalSellPrice.toFixed(2) }}</span>
+            </div>
           </div>
         </el-col>
         <el-col :span="8">
-          <div class="summary-item">
-            <span class="label">总利润</span>
-            <span class="value" :class="totalProfit >= 0 ? 'profit-positive' : 'profit-negative'">
-              ¥{{ totalProfit.toFixed(2) }}
-            </span>
+          <div class="summary-item" :class="totalProfit >= 0 ? 'profit-summary-positive' : 'profit-summary-negative'">
+            <div class="summary-icon">{{ totalProfit >= 0 ? '📈' : '📉' }}</div>
+            <div class="summary-content">
+              <span class="label">利润</span>
+              <span class="value">{{ totalProfit >= 0 ? '+' : '' }}¥{{ totalProfit.toFixed(2) }}</span>
+            </div>
           </div>
         </el-col>
       </el-row>
@@ -136,7 +143,8 @@ function updateChart() {
       left: 'center',
       textStyle: {
         fontSize: 16,
-        fontWeight: 600
+        fontWeight: 600,
+        color: '#303133'
       }
     },
     tooltip: {
@@ -145,59 +153,132 @@ function updateChart() {
         type: 'shadow'
       },
       formatter: (params: any) => {
-        let result = `<b>${params[0].name}</b><br/>`
+        let result = `<div style="padding: 8px;"><b>${params[0].name}</b><br/>`
         params.forEach((param: any) => {
-          result += `${param.marker} ${param.seriesName}: ¥${param.value.toFixed(2)}<br/>`
+          const color = param.color.color || param.color
+          result += `<div style="margin: 4px 0;">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};margin-right:6px;"></span>
+            ${param.seriesName}: <b>¥${param.value.toFixed(2)}</b>
+          </div>`
         })
+        result += '</div>'
         return result
+      }
+    },
+    legend: {
+      data: ['买入成本', '卖出收入', '利润'],
+      top: 30,
+      textStyle: {
+        fontSize: 13
       }
     },
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '3%',
+      bottom: '10%',
+      top: '20%',
       containLabel: true
     },
     xAxis: {
       type: 'category',
-      data: ['买入成本', '卖出收入', '利润'],
+      data: ['价格统计'],
       axisLabel: {
-        fontSize: 13
+        fontSize: 13,
+        color: '#606266'
+      },
+      axisLine: {
+        lineStyle: {
+          color: '#dcdfe6'
+        }
       }
     },
     yAxis: {
       type: 'value',
+      name: '金额 (¥)',
+      nameTextStyle: {
+        color: '#909399',
+        fontSize: 12
+      },
       axisLabel: {
         formatter: '¥{value}',
-        fontSize: 12
+        fontSize: 12,
+        color: '#909399'
+      },
+      splitLine: {
+        lineStyle: {
+          color: '#ebeef5',
+          type: 'dashed'
+        }
       }
     },
     series: [
       {
-        name: '金额',
+        name: '买入成本',
         type: 'bar',
-        data: [
-          {
-            value: data.buyPrice,
-            itemStyle: { color: '#409eff' }
-          },
-          {
-            value: data.sellPrice,
-            itemStyle: { color: '#67c23a' }
-          },
-          {
-            value: data.profit,
-            itemStyle: { color: data.profit >= 0 ? '#e6a23c' : '#f56c6c' }
-          }
-        ],
-        barWidth: '50%',
+        data: [data.buyPrice],
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#66b1ff' },
+            { offset: 1, color: '#409eff' }
+          ])
+        },
+        barWidth: '20%',
+        label: {
+          show: true,
+          position: 'top',
+          formatter: (params: any) => `¥${params.value.toFixed(2)}`,
+          fontSize: 12,
+          color: '#409eff',
+          fontWeight: 'bold'
+        }
+      },
+      {
+        name: '卖出收入',
+        type: 'bar',
+        data: [data.sellPrice],
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#85ce61' },
+            { offset: 1, color: '#67c23a' }
+          ])
+        },
+        barWidth: '20%',
+        label: {
+          show: true,
+          position: 'top',
+          formatter: (params: any) => `¥${params.value.toFixed(2)}`,
+          fontSize: 12,
+          color: '#67c23a',
+          fontWeight: 'bold'
+        }
+      },
+      {
+        name: '利润',
+        type: 'bar',
+        data: [data.profit],
+        itemStyle: {
+          color: data.profit >= 0
+            ? new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#ebb563' },
+                { offset: 1, color: '#e6a23c' }
+              ])
+            : new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#f78989' },
+                { offset: 1, color: '#f56c6c' }
+              ])
+        },
+        barWidth: '20%',
         label: {
           show: true,
           position: 'top',
           formatter: (params: any) => {
-            return `¥${params.value.toFixed(2)}`
+            const value = params.value
+            const prefix = value >= 0 ? '+' : ''
+            return `${prefix}¥${value.toFixed(2)}`
           },
-          fontSize: 12
+          fontSize: 12,
+          color: data.profit >= 0 ? '#e6a23c' : '#f56c6c',
+          fontWeight: 'bold'
         }
       }
     ]
@@ -273,35 +354,70 @@ onUnmounted(() => {
 
   .summary-item {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    padding: 8px;
+    padding: 12px;
     background: #f9f9f9;
-    border-radius: 6px;
+    border-radius: 8px;
+    transition: all 0.3s;
 
-    .label {
-      font-size: 12px;
-      color: #909399;
-      margin-bottom: 4px;
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
-    .value {
-      font-size: 16px;
-      font-weight: 600;
+    .summary-icon {
+      font-size: 24px;
+      margin-right: 12px;
+    }
 
-      &.buy-value {
+    .summary-content {
+      display: flex;
+      flex-direction: column;
+
+      .label {
+        font-size: 12px;
+        color: #909399;
+        margin-bottom: 4px;
+      }
+
+      .value {
+        font-size: 18px;
+        font-weight: 600;
+      }
+    }
+
+    &.buy-summary {
+      background: linear-gradient(135deg, #e6f3ff 0%, #f0f9ff 100%);
+      border-left: 4px solid #409eff;
+
+      .value {
         color: #409eff;
       }
+    }
 
-      &.sell-value {
+    &.sell-summary {
+      background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f4 100%);
+      border-left: 4px solid #67c23a;
+
+      .value {
         color: #67c23a;
       }
+    }
 
-      &.profit-positive {
+    &.profit-summary-positive {
+      background: linear-gradient(135deg, #fef6e7 0%, #fff9f0 100%);
+      border-left: 4px solid #e6a23c;
+
+      .value {
         color: #e6a23c;
       }
+    }
 
-      &.profit-negative {
+    &.profit-summary-negative {
+      background: linear-gradient(135deg, #fef0f0 0%, #fef5f5 100%);
+      border-left: 4px solid #f56c6c;
+
+      .value {
         color: #f56c6c;
       }
     }
