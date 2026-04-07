@@ -1,12 +1,13 @@
 <template>
   <el-card class="item-card" :class="{ sold: item.sold }" shadow="hover">
-    <!-- 编号标记 -->
-    <div class="id-badge">#{{ item.id }}</div>
-
     <!-- 已卖出标记 -->
     <div v-if="item.sold" class="sold-badge">已卖出</div>
 
     <template #header>
+      <!-- 编号行 -->
+      <div class="id-row">#{{ item.id }}</div>
+
+      <!-- 标题行 -->
       <div class="card-header">
         <span class="item-name" :class="{ 'sold-text': item.sold }">{{ item.name }}</span>
         <PlatformBadge :platform="item.platform" />
@@ -172,8 +173,7 @@ function handleDelete() {
   }
 
   :deep(.el-card__header) {
-    padding: 12px;
-    padding-left: 50px; // 为编号腾出空间
+    padding: 8px 12px;
   }
 
   :deep(.el-card__body) {
@@ -186,18 +186,12 @@ function handleDelete() {
   }
 }
 
-// 编号标记
-.id-badge {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  background: #409eff;
-  color: white;
+// 编号行
+.id-row {
   font-size: 12px;
   font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 12px;
-  z-index: 2;
+  color: #409eff;
+  margin-bottom: 4px;
 }
 
 // 已卖出标记
