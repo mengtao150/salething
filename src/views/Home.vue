@@ -238,9 +238,14 @@ const displayItems = computed(() => {
     items = items.filter(item => item.platform === filterPlatform.value)
   }
 
-  // 状态筛选
+  // 状态筛选（在已筛选的基础上继续筛选）
   if (filterStatus.value) {
-    items = itemsStore.getItemsByStatus(filterStatus.value)
+    items = items.filter(item => {
+      if (filterStatus.value === 'pending') return !item.received
+      if (filterStatus.value === 'received') return item.received && !item.sold
+      if (filterStatus.value === 'sold') return item.sold
+      return true
+    })
   }
 
   // 排序：优先按剩余时间，未卖出在前，已卖出在后
