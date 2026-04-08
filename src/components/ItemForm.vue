@@ -7,18 +7,25 @@
     label-position="left"
     class="item-form"
   >
-    <!-- 语音输入区域 (仅添加模式显示) -->
     <el-form-item v-if="!editMode" class="voice-input-section">
       <div class="voice-input-container">
         <VoiceRecordButton @recording-complete="handleVoiceInput" />
         <el-text size="small" style="margin-left: 12px">
-          点击麦克风开始录音，描述商品信息（如："我在淘宝买了iPhone 15 Pro，花了2999元"）
+          点击麦克风开始录音，描述商品信息，例如：我在淘宝买了 iPhone 15 Pro，花了 4999 元。
         </el-text>
+      </div>
+
+      <div v-if="currentVoiceText" class="voice-result-panel">
+        <div class="voice-result-header">
+          <span>讯飞转写结果</span>
+          <el-tag size="small" type="success">控制台已输出</el-tag>
+        </div>
+        <div class="voice-result-content">{{ currentVoiceText }}</div>
       </div>
     </el-form-item>
 
-    <el-form-item label="物品名称" prop="name">
-      <el-input v-model="formData.name" placeholder="请输入物品名称" />
+    <el-form-item label="商品名称" prop="name">
+      <el-input v-model="formData.name" placeholder="请输入商品名称" />
     </el-form-item>
 
     <el-form-item label="购买平台" prop="platform">
@@ -59,7 +66,6 @@
         :precision="2"
         :step="0.01"
         style="width: 100%"
-        placeholder="可选"
       />
     </el-form-item>
 
@@ -70,11 +76,9 @@
         :precision="2"
         :step="0.01"
         style="width: 100%"
-        placeholder="可选"
       />
     </el-form-item>
 
-    <!-- 编辑模式额外字段 -->
     <template v-if="editMode">
       <el-divider>卖出信息</el-divider>
 
@@ -104,7 +108,6 @@
     </template>
   </el-form>
 
-  <!-- AI 提取结果预览对话框 -->
   <ExtractedDataPreview
     v-model="showPreviewDialog"
     :voice-text="currentVoiceText"
@@ -113,11 +116,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { Item, Platform } from '@/types'
-import VoiceRecordButton from '@/components/VoiceRecordButton.vue'
 import ExtractedDataPreview from '@/components/ExtractedDataPreview.vue'
+import VoiceRecordButton from '@/components/VoiceRecordButton.vue'
 import type { ExtractedItemData } from '@/utils/aiExtractor'
 
 const props = defineProps<{
@@ -130,8 +133,6 @@ const emit = defineEmits<{
 
 const formRef = ref<FormInstance>()
 const editMode = computed(() => !!props.item)
-
-// 语音输入相关状态
 const showPreviewDialog = ref(false)
 const currentVoiceText = ref('')
 
@@ -150,34 +151,42 @@ const formData = reactive({
 })
 
 const rules: FormRules = {
-  name: [
-    { required: true, message: '请输入物品名称', trigger: 'blur' }
-  ],
-  platform: [
-    { required: true, message: '请选择购买平台', trigger: 'change' }
-  ],
-  buyPrice: [
-    { required: true, message: '请输入买入价格', trigger: 'blur' }
-  ],
-  receivedTime: [
-    { required: true, message: '请选择收货时间', trigger: 'change' }
-  ]
+  name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
+  platform: [{ required: true, message: '请选择购买平台', trigger: 'change' }],
+  buyPrice: [{ required: true, message: '请输入买入价格', trigger: 'blur' }],
+  receivedTime: [{ required: true, message: '请选择收货时间', trigger: 'change' }]
 }
 
-// 处理语音输入完成
 function handleVoiceInput(text: string) {
   currentVoiceText.value = text
+  console.log('[讯飞转写结果]', text)
   showPreviewDialog.value = true
 }
 
-// 处理 AI 提取数据确认
 function handleExtractedDataConfirm(data: ExtractedItemData) {
-  // 填充表单数据
-  formData.name = data.name
-  formData.platform = data.platform
-  formData.buyPrice = data.buyPrice
-  formData.expectedSellPrice = data.expectedSellPrice
-  formData.shippingFee = data.shippingFee
+  if (data.name) {
+    formData.name = data.name
+  }
+
+  if (data.platform) {
+    formData.platform = data.platform
+  }
+
+  if (data.buyPrice !== undefined) {
+    formData.buyPrice = data.buyPrice
+  }
+
+  if (data.receivedTime) {
+    formData.receivedTime = new Date(data.receivedTime)
+  }
+
+  if (data.expectedSellPrice !== undefined) {
+    formData.expectedSellPrice = data.expectedSellPrice
+  }
+
+  if (data.shippingFee !== undefined) {
+    formData.shippingFee = data.shippingFee
+  }
 }
 
 async function submit() {
@@ -186,7 +195,7 @@ async function submit() {
   try {
     await formRef.value.validate()
 
-    const submitData = {
+    emit('submit', {
       name: formData.name,
       platform: formData.platform,
       buyPrice: formData.buyPrice,
@@ -198,9 +207,7 @@ async function submit() {
       sold: formData.sold,
       actualSellPrice: formData.actualSellPrice,
       sellTime: formData.sellTime ? new Date(formData.sellTime as Date).toISOString() : undefined
-    }
-
-    emit('submit', submitData)
+    })
     return true
   } catch {
     return false
@@ -235,8 +242,33 @@ defineExpose({
   align-items: center;
   padding: 16px;
   background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf3 100%);
-  border-radius: 8px;
+  border-radius: 16px;
   border: 1px solid #d9d9d9;
+}
+
+.voice-result-panel {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(245, 248, 255, 0.9);
+}
+
+.voice-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #42516c;
+}
+
+.voice-result-content {
+  white-space: pre-wrap;
+  line-height: 1.7;
+  font-size: 13px;
+  color: #5d6b82;
 }
 
 @media (max-width: 768px) {

@@ -158,6 +158,7 @@ async function startRecordingFn() {
 
 function stopRecordingFn() {
   if (stopRecording.value) {
+    state.value = 'processing'
     stopRecording.value()
     stopRecording.value = null
   }

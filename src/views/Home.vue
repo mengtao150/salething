@@ -1,95 +1,141 @@
 <template>
   <div class="home-container">
-    <!-- 顶部统计 -->
-    <div class="stats-section">
+    <section class="hero-section">
+      <div class="hero-copy">
+        <span class="hero-eyebrow">SaleThing Dashboard</span>
+        <h1>让每一件商品都更清晰、更好管理</h1>
+        <p>
+          用更干净的视图查看库存、倒计时和利润变化，手机上也保持轻盈顺手的浏览体验。
+        </p>
+      </div>
+
+      <div class="hero-panel">
+        <div class="hero-chip">
+          <span class="hero-chip__label">在库商品</span>
+          <strong>{{ activeItemCount }}</strong>
+        </div>
+        <div class="hero-chip">
+          <span class="hero-chip__label">已售商品</span>
+          <strong>{{ itemsStore.stats.soldItems }}</strong>
+        </div>
+        <div class="hero-chip">
+          <span class="hero-chip__label">当前利润率</span>
+          <strong>{{ itemsStore.stats.profitRate.toFixed(1) }}%</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats-shell">
       <StatsCard :stats="itemsStore.stats" />
-    </div>
+    </section>
 
-    <!-- 提醒按钮 -->
-    <el-card class="reminder-card" shadow="never">
-      <el-row :gutter="12">
-        <el-col :span="12">
-          <el-button type="warning" :icon="Bell" @click="manualCheckReminders" style="width: 100%">
-            🔔 检查倒计时提醒
-          </el-button>
-        </el-col>
-        <el-col :span="12">
-          <el-button type="info" @click="testEmailReminder" style="width: 100%">
-            📧 测试邮件提醒
-          </el-button>
-        </el-col>
-      </el-row>
-    </el-card>
+    <section class="toolbar-grid">
+      <el-card class="surface-card reminder-card" shadow="never">
+        <div class="section-title">
+          <div>
+            <span class="section-kicker">提醒中心</span>
+            <h2>退货倒计时提醒</h2>
+          </div>
+          <span class="section-aside">{{ urgentItemCount }} 件需要关注</span>
+        </div>
 
-    <!-- 统计图表 -->
+        <div class="button-stack">
+          <el-button type="warning" :icon="Bell" @click="manualCheckReminders">
+            检查倒计时提醒
+          </el-button>
+          <el-button type="info" plain @click="testEmailReminder">
+            测试邮件提醒
+          </el-button>
+        </div>
+      </el-card>
+
+      <el-card class="surface-card action-card" shadow="never">
+        <div class="section-title">
+          <div>
+            <span class="section-kicker">快捷操作</span>
+            <h2>筛选与录入</h2>
+          </div>
+        </div>
+
+        <el-row :gutter="12" class="action-row">
+          <el-col :xs="24" :sm="12" :md="12" :lg="10">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="搜索商品名称"
+              :prefix-icon="Search"
+              clearable
+              @clear="handleSearch"
+              @keyup.enter="handleSearch"
+            />
+          </el-col>
+          <el-col :xs="12" :sm="6" :md="6" :lg="5">
+            <el-select
+              v-model="filterPlatform"
+              placeholder="全部平台"
+              clearable
+              style="width: 100%"
+              @change="handleFilter"
+            >
+              <el-option label="全部" value="" />
+              <el-option label="拼多多" value="拼多多" />
+              <el-option label="淘宝" value="淘宝" />
+              <el-option label="抖音" value="抖音" />
+              <el-option label="京东" value="京东" />
+              <el-option label="唯品会" value="唯品会" />
+              <el-option label="快手" value="快手" />
+            </el-select>
+          </el-col>
+          <el-col :xs="12" :sm="6" :md="6" :lg="5">
+            <el-select
+              v-model="filterStatus"
+              placeholder="全部状态"
+              clearable
+              style="width: 100%"
+              @change="handleFilter"
+            >
+              <el-option label="全部" value="" />
+              <el-option label="待收货" value="pending" />
+              <el-option label="倒计时中" value="received" />
+              <el-option label="已卖出" value="sold" />
+            </el-select>
+          </el-col>
+          <el-col :xs="24" :sm="24" :md="24" :lg="4">
+            <el-button type="primary" :icon="Plus" @click="showAddDialog" class="create-button">
+              添加商品
+            </el-button>
+          </el-col>
+        </el-row>
+      </el-card>
+    </section>
+
     <ItemChart :items="itemsStore.allItems" />
 
-    <!-- 操作栏 -->
-    <el-card class="action-card" shadow="never">
-      <el-row :gutter="12">
-        <el-col :xs="24" :sm="8" :md="6">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索物品"
-            :prefix-icon="Search"
-            clearable
-            @clear="handleSearch"
-            @keyup.enter="handleSearch"
-          />
-        </el-col>
-        <el-col :xs="12" :sm="8" :md="6">
-          <el-select v-model="filterPlatform" placeholder="全部平台" clearable @change="handleFilter" style="width: 100%">
-            <el-option label="全部" value="" />
-            <el-option label="拼多多" value="拼多多" />
-            <el-option label="淘宝" value="淘宝" />
-            <el-option label="抖音" value="抖音" />
-            <el-option label="京东" value="京东" />
-            <el-option label="唯品会" value="唯品会" />
-            <el-option label="快手" value="快手" />
-          </el-select>
-        </el-col>
-        <el-col :xs="12" :sm="8" :md="6">
-          <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="handleFilter" style="width: 100%">
-            <el-option label="全部" value="" />
-            <el-option label="待收货" value="pending" />
-            <el-option label="倒计时中" value="received" />
-            <el-option label="已卖出" value="sold" />
-          </el-select>
-        </el-col>
-        <el-col :xs="24" :sm="24" :md="6">
-          <el-button type="primary" :icon="Plus" @click="showAddDialog" style="width: 100%">
-            添加物品
-          </el-button>
-        </el-col>
-      </el-row>
-    </el-card>
-
-    <!-- 物品列表 -->
-    <div class="items-list" v-loading="itemsStore.loading">
+    <section class="items-section" v-loading="itemsStore.loading">
       <div class="list-header">
-        <h3>物品列表</h3>
-        <span class="count">共 {{ displayItems.length }} 件</span>
+        <div>
+          <span class="section-kicker">商品列表</span>
+          <h2>最近管理的商品</h2>
+        </div>
+        <div class="list-header__meta">
+          <span>{{ displayItems.length }} 件</span>
+          <span>{{ soldItemCount }} 件已成交</span>
+        </div>
       </div>
-      <el-row :gutter="12">
+
+      <el-row :gutter="16">
         <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="item in displayItems" :key="item.id">
-          <ItemCard
-            :item="item"
-            @sell="handleSell"
-            @edit="handleEdit"
-            @delete="handleDelete"
-          />
+          <ItemCard :item="item" @sell="handleSell" @edit="handleEdit" @delete="handleDelete" />
         </el-col>
       </el-row>
 
-      <el-empty v-if="displayItems.length === 0" description="暂无物品，点击上方按钮添加">
-        <el-button type="primary" @click="showAddDialog">添加第一个物品</el-button>
+      <el-empty v-if="displayItems.length === 0" class="empty-panel" description="还没有符合条件的商品">
+        <el-button type="primary" @click="showAddDialog">添加第一件商品</el-button>
       </el-empty>
-    </div>
+    </section>
 
-    <!-- 添加物品弹窗 -->
     <el-dialog
       v-model="addDialogVisible"
-      title="添加物品"
+      title="添加商品"
       :width="dialogWidth"
       :before-close="handleCloseAddDialog"
     >
@@ -100,16 +146,14 @@
       </template>
     </el-dialog>
 
-    <!-- 编辑物品弹窗 -->
     <el-dialog
       v-model="editDialogVisible"
-      title="编辑物品"
+      title="编辑商品"
       :width="dialogWidth"
       :before-close="handleCloseEditDialog"
     >
       <ItemForm ref="editFormRef" :item="editingItem" @submit="handleEditSubmit" />
 
-      <!-- 利润预估 -->
       <div v-if="editingItem" class="profit-estimate">
         <el-divider />
         <div class="profit-title">利润预估</div>
@@ -129,7 +173,7 @@
             </div>
           </el-col>
         </el-row>
-        <el-row :gutter="16" style="margin-top: 8px">
+        <el-row :gutter="16" class="profit-row">
           <el-col :span="12">
             <div class="profit-item">
               <span class="label">利润率</span>
@@ -155,10 +199,9 @@
       </template>
     </el-dialog>
 
-    <!-- 卖出确认弹窗 -->
     <el-dialog v-model="sellDialogVisible" title="确认卖出" width="400px">
       <el-form :model="sellForm" label-width="80px">
-        <el-form-item label="物品名称">
+        <el-form-item label="商品名称">
           <span>{{ sellingItem?.name }}</span>
         </el-form-item>
         <el-form-item label="实际卖价">
@@ -180,25 +223,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { Search, Plus, Bell } from '@element-plus/icons-vue'
+import { computed, onMounted, ref } from 'vue'
+import { Bell, Plus, Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useItemsStore } from '@/stores/items'
-import StatsCard from '@/components/StatsCard.vue'
-import ItemChart from '@/components/ItemChart.vue'
 import ItemCard from '@/components/ItemCard.vue'
+import ItemChart from '@/components/ItemChart.vue'
 import ItemForm from '@/components/ItemForm.vue'
-import { calculateProfit } from '@/utils/profit'
-import { getUrgentItems, getExpiredItems, getReminderMessage, sendEmailReminder } from '@/utils/reminder'
-import { getCountdown } from '@/utils/countdown'
+import StatsCard from '@/components/StatsCard.vue'
 import { emailJsConfig } from '@/config/emailjs'
-import type { Item } from '@/types'
+import { useItemsStore } from '@/stores/items'
+import type { Item, Platform } from '@/types'
+import { getCountdown } from '@/utils/countdown'
+import { calculateProfit } from '@/utils/profit'
+import { getExpiredItems, getReminderMessage, getUrgentItems, sendEmailReminder } from '@/utils/reminder'
 
 const itemsStore = useItemsStore()
 
-const userEmail = ref('') // 用户邮箱
+const userEmail = ref('')
 const searchKeyword = ref('')
-const filterPlatform = ref<'' | '拼多多' | '淘宝' | '抖音' | '京东' | '唯品会' | '快手'>('')
+const filterPlatform = ref<'' | Platform>('')
 const filterStatus = ref<'' | 'pending' | 'received' | 'sold'>('')
 
 const addDialogVisible = ref(false)
@@ -215,34 +258,27 @@ const sellForm = ref({
   sellPrice: 0
 })
 
-// 对话框宽度（响应式）
-const dialogWidth = computed(() => {
-  return window.innerWidth < 768 ? '95%' : '500px'
-})
+const dialogWidth = computed(() => (window.innerWidth < 768 ? '94%' : '560px'))
 
-// 编辑商品的利润预估
 const editProfit = computed(() => {
   if (!editingItem.value) {
     return { totalCost: 0, expectedProfit: 0, profitRate: 0 }
   }
+
   return calculateProfit(editingItem.value)
 })
 
-// 显示的物品列表
 const displayItems = computed(() => {
-  let items = itemsStore.allItems
+  let items = [...itemsStore.allItems]
 
-  // 搜索
   if (searchKeyword.value) {
     items = itemsStore.searchItems(searchKeyword.value)
   }
 
-  // 平台筛选
   if (filterPlatform.value) {
     items = items.filter(item => item.platform === filterPlatform.value)
   }
 
-  // 状态筛选（在已筛选的基础上继续筛选）
   if (filterStatus.value) {
     items = items.filter(item => {
       if (filterStatus.value === 'pending') return !item.received
@@ -252,40 +288,28 @@ const displayItems = computed(() => {
     })
   }
 
-  // 排序：优先按剩余时间，未卖出在前，已卖出在后
   return items.sort((a, b) => {
-    // 1. 先按卖出状态分组：未卖出在前，已卖出在后
     if (a.sold !== b.sold) {
       return a.sold ? 1 : -1
     }
 
-    // 2. 对于未卖出的商品，按剩余时间排序
     if (!a.sold && !b.sold) {
       const aCountdown = a.receivedTime ? getCountdown(a.receivedTime) : null
       const bCountdown = b.receivedTime ? getCountdown(b.receivedTime) : null
 
-      // 都有收货时间，按剩余时间排序（剩余时间少的在前）
       if (aCountdown && bCountdown) {
-        // 计算总剩余分钟数
         const aMinutes = (aCountdown.days || 0) * 24 * 60 + (aCountdown.hours || 0) * 60 + (aCountdown.minutes || 0)
         const bMinutes = (bCountdown.days || 0) * 24 * 60 + (bCountdown.hours || 0) * 60 + (bCountdown.minutes || 0)
 
-        // 已超期的排在最前面（因为最紧急）
-        if (aCountdown.isExpired && bCountdown.isExpired) {
-          return 0
-        }
-        if (aCountdown.isExpired) return -1
-        if (bCountdown.isExpired) return 1
-
+        if (aCountdown.isExpired && !bCountdown.isExpired) return -1
+        if (!aCountdown.isExpired && bCountdown.isExpired) return 1
         return aMinutes - bMinutes
       }
 
-      // 有收货时间的在前，没有收货时间的在后
       if (aCountdown && !bCountdown) return -1
       if (!aCountdown && bCountdown) return 1
     }
 
-    // 3. 对于已卖出的商品，按卖出时间倒序
     if (a.sold && b.sold) {
       const aTime = a.sellTime ? new Date(a.sellTime).getTime() : 0
       const bTime = b.sellTime ? new Date(b.sellTime).getTime() : 0
@@ -296,183 +320,126 @@ const displayItems = computed(() => {
   })
 })
 
+const activeItemCount = computed(() => itemsStore.allItems.filter(item => !item.sold).length)
+const soldItemCount = computed(() => itemsStore.allItems.filter(item => item.sold).length)
+const urgentItemCount = computed(() => {
+  const urgentItems = getUrgentItems(itemsStore.allItems)
+  const expiredItems = getExpiredItems(itemsStore.allItems)
+  return urgentItems.length + expiredItems.length
+})
+
 onMounted(async () => {
   await itemsStore.init()
-  // 检查提醒
   checkReminders()
 })
 
-// 检查倒计时提醒（自动发送邮件）
 async function checkReminders() {
   const allItems = itemsStore.allItems
   const urgentItems = getUrgentItems(allItems)
   const expiredItems = getExpiredItems(allItems)
 
-  if (urgentItems.length > 0 || expiredItems.length > 0) {
-    // 检查是否已经发送过邮件（24小时内不重复发送相同内容）
-    const lastSentTime = localStorage.getItem('last_email_sent_time')
-    const lastSentItems = localStorage.getItem('last_sent_items')
-
-    const now = Date.now()
-    const ONE_DAY = 24 * 60 * 60 * 1000
-
-    // 当前需要提醒的物品ID列表
-    const currentItemIds = [
-      ...urgentItems.map(i => i.id),
-      ...expiredItems.map(i => i.id)
-    ].sort()
-
-    const currentItemsKey = JSON.stringify(currentItemIds)
-
-    // 如果24小时内发送过相同内容的邮件，则跳过
-    if (lastSentTime && lastSentItems === currentItemsKey) {
-      const timeSinceLastSent = now - parseInt(lastSentTime)
-      if (timeSinceLastSent < ONE_DAY) {
-        console.log('邮件已在24小时内发送过，跳过')
-        return
-      }
-    }
-    // 使用配置的目标邮箱或已保存的邮箱
-    const savedEmail = localStorage.getItem('user_email')
-    const email = savedEmail || emailJsConfig.targetEmail || '2640622467@qq.com'
-
-    // 自动发送邮件提醒
-    const success = await sendEmailReminder(urgentItems, expiredItems, email)
-
-    if (success) {
-      // 记录发送时间和物品列表，防止重复发送
-      const currentItemIds = [
-        ...urgentItems.map(i => i.id),
-        ...expiredItems.map(i => i.id)
-      ].sort()
-      localStorage.setItem('last_email_sent_time', String(now))
-      localStorage.setItem('last_sent_items', JSON.stringify(currentItemIds))
-
-      // 显示通知告知用户已发送邮件
-      const itemCount = urgentItems.length + expiredItems.length
-      ElMessage.success(
-        `✅ 已自动发送邮件提醒到 ${email}\n` +
-        `${urgentItems.length}件即将超期，${expiredItems.length}件已超期`
-      )
-    }
-
-    // 同时显示简短的通知
-    const message = getReminderMessage(urgentItems, expiredItems)
-    ElMessageBox.alert(
-      message + '\n\n邮件提醒已自动发送到：' + email,
-      '⏰ 退货倒计时提醒',
-      {
-        confirmButtonText: '我知道了',
-        type: urgentItems.length > 0 ? 'warning' : 'info',
-        customClass: 'reminder-message-box'
-      }
-    ).catch(() => {})
+  if (urgentItems.length === 0 && expiredItems.length === 0) {
+    return
   }
-}
 
-// 发送邮件提醒
-function handleSendEmailReminder(urgentItems: Item[], expiredItems: Item[]) {
-  // 从 localStorage 获取用户邮箱
+  const lastSentTime = localStorage.getItem('last_email_sent_time')
+  const lastSentItems = localStorage.getItem('last_sent_items')
+  const now = Date.now()
+  const oneDay = 24 * 60 * 60 * 1000
+  const currentItemIds = [...urgentItems.map(item => item.id), ...expiredItems.map(item => item.id)].sort()
+  const currentItemsKey = JSON.stringify(currentItemIds)
+
+  if (lastSentTime && lastSentItems === currentItemsKey) {
+    const timeSinceLastSent = now - Number.parseInt(lastSentTime, 10)
+    if (timeSinceLastSent < oneDay) {
+      return
+    }
+  }
+
   const savedEmail = localStorage.getItem('user_email')
-  const email = savedEmail || userEmail.value
+  const email = savedEmail || emailJsConfig.targetEmail || '2640622467@qq.com'
+  const success = await sendEmailReminder(urgentItems, expiredItems, email)
 
-  if (!email) {
-    ElMessageBox.prompt('请输入您的邮箱地址', '邮件提醒', {
-      confirmButtonText: '发送',
-      cancelButtonText: '取消',
-      inputPattern: /[^@]+@[^@]+\.[^@]+/,
-      inputErrorMessage: '请输入正确的邮箱地址'
-    }).then(({ value }) => {
-      userEmail.value = value
-      localStorage.setItem('user_email', value)
-      sendEmailReminder(urgentItems, expiredItems, value)
-      ElMessage.success('已打开邮件客户端')
-    }).catch(() => {
-      // 用户取消
-    })
-  } else {
-    sendEmailReminder(urgentItems, expiredItems, email)
-    ElMessage.success('已打开邮件客户端')
+  if (success) {
+    localStorage.setItem('last_email_sent_time', String(now))
+    localStorage.setItem('last_sent_items', currentItemsKey)
+
+    ElMessage.success(
+      `邮件提醒已发送到 ${email}，${urgentItems.length} 件即将超期，${expiredItems.length} 件已超期`
+    )
   }
+
+  const message = getReminderMessage(urgentItems, expiredItems)
+  ElMessageBox.alert(`${message}\n\n邮件提醒已发送到：${email}`, '退货倒计时提醒', {
+    confirmButtonText: '我知道了',
+    type: urgentItems.length > 0 ? 'warning' : 'info',
+    customClass: 'reminder-message-box'
+  }).catch(() => {})
 }
 
-// 手动检查提醒
 function manualCheckReminders() {
-  const allItems = itemsStore.allItems
-  const urgentItems = getUrgentItems(allItems)
-  const expiredItems = getExpiredItems(allItems)
+  const urgentItems = getUrgentItems(itemsStore.allItems)
+  const expiredItems = getExpiredItems(itemsStore.allItems)
 
   if (urgentItems.length === 0 && expiredItems.length === 0) {
-    ElMessage.success('✅ 目前没有需要紧急处理的商品')
+    ElMessage.success('目前没有需要紧急处理的商品')
     return
   }
 
   checkReminders()
 }
 
-// 测试邮件提醒功能（强制触发）
 function testEmailReminder() {
-  // 创建一个模拟的紧急商品用于测试
   const testItem: Item = {
     id: 'test-123',
-    name: '测试商品-立即处理',
+    name: '测试商品-请尽快处理',
     platform: '淘宝',
     buyPrice: 100,
     buyTime: new Date().toISOString(),
     expectedSellPrice: 150,
     shippingFee: 5,
     received: true,
-    receivedTime: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(), // 6天前收货
+    receivedTime: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
     sold: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }
 
-  // 使用配置的目标邮箱
   const testEmail = emailJsConfig.targetEmail || '2640622467@qq.com'
-  localStorage.setItem('user_email', testEmail) // 保存邮箱
+  localStorage.setItem('user_email', testEmail)
 
   ElMessageBox.confirm(
-    `即将发送测试邮件到：${testEmail}\n\n测试内容：一个即将超期的商品`,
-    '📧 测试邮件提醒',
+    `即将发送测试邮件到：${testEmail}\n\n测试内容：一件即将超期的商品提醒`,
+    '测试邮件提醒',
     {
       confirmButtonText: '发送测试邮件',
       cancelButtonText: '取消',
       type: 'info'
     }
-  ).then(async () => {
-    ElMessage.info('正在发送测试邮件...')
-    const success = await sendEmailReminder([testItem], [], testEmail)
-    if (success) {
-      ElMessage.success('✅ 测试邮件已发送，请查收 ' + testEmail)
-    }
-  }).catch(() => {
-    // 用户取消
-  })
+  )
+    .then(async () => {
+      ElMessage.info('正在发送测试邮件...')
+      const success = await sendEmailReminder([testItem], [], testEmail)
+      if (success) {
+        ElMessage.success(`测试邮件已发送，请查收 ${testEmail}`)
+      }
+    })
+    .catch(() => {})
 }
 
-// 搜索
-function handleSearch() {
-  // 由 computed 自动处理
-}
+function handleSearch() {}
 
-// 筛选
-function handleFilter() {
-  // 由 computed 自动处理
-}
+function handleFilter() {}
 
-// 显示添加弹窗
 function showAddDialog() {
   addDialogVisible.value = true
 }
 
-// 关闭添加弹窗
 function handleCloseAddDialog() {
   addFormRef.value?.reset()
   addDialogVisible.value = false
 }
 
-// 确认添加
 async function handleConfirmAdd() {
   const success = await addFormRef.value?.submit()
   if (success) {
@@ -482,12 +449,10 @@ async function handleConfirmAdd() {
   }
 }
 
-// 添加提交
 async function handleAddSubmit(data: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>) {
   await itemsStore.addItem(data)
 }
 
-// 确认卖出
 function handleSell(id: string) {
   sellingItem.value = itemsStore.allItems.find(item => item.id === id)
   if (sellingItem.value) {
@@ -496,7 +461,6 @@ function handleSell(id: string) {
   }
 }
 
-// 确认卖出操作
 async function handleConfirmSell() {
   if (sellForm.value.sellPrice <= 0) {
     ElMessage.warning('请输入卖出价格')
@@ -510,20 +474,17 @@ async function handleConfirmSell() {
   }
 }
 
-// 编辑
 function handleEdit(item: Item) {
   editingItem.value = item
   editDialogVisible.value = true
 }
 
-// 关闭编辑弹窗
 function handleCloseEditDialog() {
   editFormRef.value?.reset()
   editDialogVisible.value = false
   editingItem.value = undefined
 }
 
-// 确认编辑
 async function handleConfirmEdit() {
   const success = await editFormRef.value?.submit()
   if (success && editingItem.value) {
@@ -534,14 +495,12 @@ async function handleConfirmEdit() {
   }
 }
 
-// 编辑提交
 async function handleEditSubmit(data: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>) {
   if (editingItem.value) {
     await itemsStore.updateItem(editingItem.value.id, data)
   }
 }
 
-// 删除
 async function handleDelete(id: string) {
   await itemsStore.deleteItem(id)
   ElMessage.success('已删除')
@@ -550,98 +509,226 @@ async function handleDelete(id: string) {
 
 <style scoped lang="scss">
 .home-container {
+  position: relative;
   min-height: 100vh;
-  padding: 12px;
-  padding-bottom: 40px;
-  background-color: #f5f5f5;
+  padding: 24px;
+  padding-bottom: calc(36px + env(safe-area-inset-bottom));
 }
 
-.stats-section {
-  margin-bottom: 12px;
+.hero-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(280px, 1fr);
+  gap: 18px;
+  align-items: stretch;
+  margin-bottom: 18px;
 }
 
-.action-card {
-  margin-bottom: 12px;
+.hero-copy,
+.hero-panel,
+.surface-card,
+.list-header {
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+}
+
+.hero-copy {
+  padding: 28px;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top left, rgba(91, 141, 239, 0.18), transparent 42%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(246, 249, 255, 0.76));
+
+  h1 {
+    max-width: 10em;
+    margin: 10px 0 12px;
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1.08;
+    letter-spacing: -0.04em;
+    color: #10213d;
+  }
+
+  p {
+    max-width: 42rem;
+    font-size: 14px;
+    line-height: 1.8;
+    color: #5b6780;
+  }
+}
+
+.hero-eyebrow,
+.section-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #5f7fd7;
+}
+
+.hero-panel {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 30px;
+}
+
+.hero-chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(247, 250, 255, 0.95), rgba(236, 243, 255, 0.9));
+
+  strong {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #14294a;
+  }
+}
+
+.hero-chip__label {
+  font-size: 13px;
+  color: #70809b;
+}
+
+.stats-shell {
+  margin-bottom: 18px;
+}
+
+.toolbar-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.surface-card {
+  border-radius: 28px;
 
   :deep(.el-card__body) {
-    padding: 12px;
+    padding: 22px;
   }
 }
 
-.reminder-card {
-  margin-bottom: 12px;
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
 
-  :deep(.el-card__body) {
-    padding: 8px 12px;
+  h2 {
+    margin: 8px 0 0;
+    font-size: 22px;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    color: #172b4d;
   }
 }
 
-.items-list {
-  .list-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    padding: 8px 12px;
-    background: white;
-    border-radius: 8px;
+.section-aside,
+.list-header__meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #6c7892;
+}
 
-    h3 {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: #303133;
-    }
+.button-stack {
+  display: grid;
+  gap: 12px;
 
-    .count {
-      font-size: 14px;
-      color: #909399;
-    }
+  .el-button {
+    width: 100%;
+    height: 48px;
   }
+}
 
-  .el-col {
-    margin-bottom: 12px;
+.action-row {
+  align-items: center;
+}
+
+.create-button {
+  width: 100%;
+}
+
+.items-section {
+  margin-top: 18px;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 22px 24px;
+  border-radius: 28px;
+
+  h2 {
+    margin: 8px 0 0;
+    font-size: 22px;
+    color: #172b4d;
+    letter-spacing: -0.03em;
   }
+}
+
+.empty-panel {
+  margin-top: 24px;
+  padding: 24px 0;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.72);
 }
 
 .profit-estimate {
   .profit-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #303133;
     margin-bottom: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #172b4d;
   }
 
   .profit-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
-    background-color: #f8f9fa;
-    border-radius: 6px;
+    padding: 12px 14px;
+    border-radius: 18px;
+    background: #f7f9fc;
 
     .label {
       font-size: 13px;
-      color: #606266;
+      color: #66748d;
     }
 
     .value {
       font-size: 14px;
-      font-weight: 600;
-      color: #303133;
+      font-weight: 700;
+      color: #1b2b46;
 
       &.positive {
-        color: #67c23a;
+        color: #1f9c68;
       }
 
       &.negative {
-        color: #f56c6c;
+        color: #d95763;
       }
     }
   }
 }
 
-// 提醒弹窗样式
+.profit-row {
+  margin-top: 8px;
+}
+
 :deep(.reminder-message-box) {
   .el-message-box__message {
     white-space: pre-line;
@@ -651,6 +738,69 @@ async function handleDelete(id: string) {
 
   .el-message-box__content {
     padding: 20px;
+  }
+}
+
+@media (max-width: 992px) {
+  .hero-section,
+  .toolbar-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-container {
+    padding: calc(14px + env(safe-area-inset-top)) 14px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .hero-copy,
+  .hero-panel,
+  .surface-card,
+  .list-header,
+  .empty-panel {
+    border-radius: 24px;
+  }
+
+  .hero-copy {
+    padding: 22px 18px;
+
+    h1 {
+      max-width: none;
+      font-size: 30px;
+    }
+
+    p {
+      font-size: 13px;
+      line-height: 1.7;
+    }
+  }
+
+  .hero-panel {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+
+  .hero-chip {
+    padding: 14px 16px;
+
+    strong {
+      font-size: 24px;
+    }
+  }
+
+  .section-title,
+  .list-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .list-header {
+    padding: 18px;
+  }
+
+  .button-stack .el-button,
+  .create-button {
+    height: 46px;
   }
 }
 </style>

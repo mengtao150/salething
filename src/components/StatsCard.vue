@@ -1,95 +1,173 @@
 <template>
-  <el-row :gutter="12" class="stats-container">
-    <el-col :xs="12" :sm="6" :md="6" :lg="6">
-      <div class="stat-card total">
-        <div class="value">{{ stats.totalItems }}</div>
-        <div class="label">总物品</div>
-      </div>
-    </el-col>
-    <el-col :xs="12" :sm="6" :md="6" :lg="6">
-      <div class="stat-card pending">
-        <div class="value">{{ stats.pendingItems }}</div>
-        <div class="label">待收货</div>
-      </div>
-    </el-col>
-    <el-col :xs="12" :sm="6" :md="6" :lg="6">
-      <div class="stat-card countdown">
-        <div class="value">{{ stats.receivedItems }}</div>
-        <div class="label">倒计时中</div>
-      </div>
-    </el-col>
-    <el-col :xs="12" :sm="6" :md="6" :lg="6">
-      <div class="stat-card sold">
-        <div class="value">{{ stats.soldItems }}</div>
-        <div class="label">已卖出</div>
-      </div>
-    </el-col>
-  </el-row>
+  <div class="stats-shell">
+    <el-row :gutter="16" class="stats-grid">
+      <el-col :xs="12" :sm="12" :md="6" v-for="card in overviewCards" :key="card.label">
+        <div class="stat-card" :class="card.tone">
+          <span class="stat-card__label">{{ card.label }}</span>
+          <strong class="stat-card__value">{{ card.value }}</strong>
+          <span class="stat-card__hint">{{ card.hint }}</span>
+        </div>
+      </el-col>
+    </el-row>
 
-  <el-row :gutter="12" class="stats-container mt-3">
-    <el-col :xs="24" :sm="8" :md="8" :lg="8">
-      <div class="stat-card profit">
-        <div class="value">¥{{ stats.totalCost.toFixed(2) }}</div>
-        <div class="label">总投入</div>
-      </div>
-    </el-col>
-    <el-col :xs="24" :sm="8" :md="8" :lg="8">
-      <div class="stat-card" :class="stats.totalProfit >= 0 ? 'profit-positive' : 'profit-negative'">
-        <div class="value">{{ stats.totalProfit >= 0 ? '+' : '' }}¥{{ stats.totalProfit.toFixed(2) }}</div>
-        <div class="label">总利润</div>
-      </div>
-    </el-col>
-    <el-col :xs="24" :sm="8" :md="8" :lg="8">
-      <div class="stat-card" :class="stats.profitRate >= 0 ? 'profit-positive' : 'profit-negative'">
-        <div class="value">{{ stats.profitRate >= 0 ? '+' : '' }}{{ stats.profitRate.toFixed(1) }}%</div>
-        <div class="label">利润率</div>
-      </div>
-    </el-col>
-  </el-row>
+    <el-row :gutter="16" class="stats-grid stats-grid--secondary">
+      <el-col :xs="24" :sm="8" v-for="card in financeCards" :key="card.label">
+        <div class="stat-card stat-card--wide" :class="card.tone">
+          <span class="stat-card__label">{{ card.label }}</span>
+          <strong class="stat-card__value">{{ card.value }}</strong>
+          <span class="stat-card__hint">{{ card.hint }}</span>
+        </div>
+      </el-col>
+    </el-row>
+  </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Stats } from '@/types'
 
-defineProps<{
+const props = defineProps<{
   stats: Stats
 }>()
+
+const overviewCards = computed(() => [
+  {
+    label: '总商品数',
+    value: String(props.stats.totalItems),
+    hint: '当前所有记录',
+    tone: 'tone-blue'
+  },
+  {
+    label: '待收货',
+    value: String(props.stats.pendingItems),
+    hint: '等待入库确认',
+    tone: 'tone-slate'
+  },
+  {
+    label: '倒计时中',
+    value: String(props.stats.receivedItems),
+    hint: '已收货待处理',
+    tone: 'tone-amber'
+  },
+  {
+    label: '已卖出',
+    value: String(props.stats.soldItems),
+    hint: '已完成成交',
+    tone: 'tone-green'
+  }
+])
+
+const financeCards = computed(() => [
+  {
+    label: '总投入',
+    value: `¥${props.stats.totalCost.toFixed(2)}`,
+    hint: '含采购与运费',
+    tone: 'tone-sky'
+  },
+  {
+    label: '总利润',
+    value: `${props.stats.totalProfit >= 0 ? '+' : ''}¥${props.stats.totalProfit.toFixed(2)}`,
+    hint: props.stats.totalProfit >= 0 ? '整体表现不错' : '需要关注亏损商品',
+    tone: props.stats.totalProfit >= 0 ? 'tone-green' : 'tone-rose'
+  },
+  {
+    label: '利润率',
+    value: `${props.stats.profitRate >= 0 ? '+' : ''}${props.stats.profitRate.toFixed(1)}%`,
+    hint: '综合收益效率',
+    tone: props.stats.profitRate >= 0 ? 'tone-indigo' : 'tone-rose'
+  }
+])
 </script>
 
 <style scoped lang="scss">
-.stats-container {
-  margin-bottom: 8px;
+.stats-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.stats-grid {
+  margin: 0;
+}
+
+.stats-grid--secondary {
+  margin-top: 0;
 }
 
 .stat-card {
-  padding: 12px;
-  border-radius: $ios-card-radius;
-  text-align: center;
-  background: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-
-  .value {
-    font-size: 20px;
-    font-weight: 600;
-    margin-bottom: 4px;
-  }
-
-  .label {
-    font-size: 12px;
-    color: #909399;
-  }
-
-  &.total .value { color: $primary-color; }
-  &.pending .value { color: $info-color; }
-  &.countdown .value { color: $warning-color; }
-  &.sold .value { color: $success-color; }
-  &.profit .value { color: $primary-color; }
-
-  &.profit-positive .value { color: $success-color; }
-  &.profit-negative .value { color: $danger-color; }
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 146px;
+  padding: 18px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 249, 255, 0.82)),
+    var(--card-glow, transparent);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
 }
 
-.mt-3 {
-  margin-top: 12px;
+.stat-card--wide {
+  min-height: 152px;
+}
+
+.stat-card__label {
+  font-size: 13px;
+  color: #74819a;
+}
+
+.stat-card__value {
+  margin-top: 18px;
+  font-size: clamp(26px, 4vw, 34px);
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: #10213d;
+}
+
+.stat-card__hint {
+  margin-top: 18px;
+  font-size: 12px;
+  color: #8a95ac;
+}
+
+.tone-blue {
+  --card-glow: radial-gradient(circle at top right, rgba(91, 125, 239, 0.2), transparent 45%);
+}
+
+.tone-slate {
+  --card-glow: radial-gradient(circle at top right, rgba(125, 140, 170, 0.2), transparent 45%);
+}
+
+.tone-amber {
+  --card-glow: radial-gradient(circle at top right, rgba(242, 165, 59, 0.2), transparent 45%);
+}
+
+.tone-green {
+  --card-glow: radial-gradient(circle at top right, rgba(40, 179, 125, 0.2), transparent 45%);
+}
+
+.tone-sky {
+  --card-glow: radial-gradient(circle at top right, rgba(102, 189, 255, 0.2), transparent 45%);
+}
+
+.tone-indigo {
+  --card-glow: radial-gradient(circle at top right, rgba(116, 132, 244, 0.22), transparent 45%);
+}
+
+.tone-rose {
+  --card-glow: radial-gradient(circle at top right, rgba(228, 93, 111, 0.2), transparent 45%);
+}
+
+@media (max-width: 768px) {
+  .stat-card {
+    min-height: 128px;
+    padding: 16px;
+    border-radius: 24px;
+  }
+
+  .stat-card__value {
+    margin-top: 16px;
+    font-size: 28px;
+  }
 }
 </style>

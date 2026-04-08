@@ -12,48 +12,54 @@ const props = defineProps<{
 
 const platformClass = computed(() => {
   const classMap: Record<Platform, string> = {
-    '拼多多': 'pinduoduo',
-    '淘宝': 'taobao',
-    '抖音': 'douyin',
-    '京东': 'jingdong',
-    '唯品会': 'vip',
-    '快手': 'kuaishou'
+    拼多多: 'pinduoduo',
+    淘宝: 'taobao',
+    抖音: 'douyin',
+    京东: 'jingdong',
+    唯品会: 'vip',
+    快手: 'kuaishou'
   }
+
   return classMap[props.platform] || ''
 })
 </script>
 
 <style scoped lang="scss">
 .platform-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  padding: 7px 12px;
+  border-radius: 999px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   color: white;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 
   &.pinduoduo {
-    background-color: $platform-pinduoduo;
+    background: linear-gradient(135deg, #ff6557, $platform-pinduoduo);
   }
 
   &.taobao {
-    background-color: $platform-taobao;
+    background: linear-gradient(135deg, #ff844f, $platform-taobao);
   }
 
   &.douyin {
-    background-color: $platform-douyin;
+    background: linear-gradient(135deg, #35353a, $platform-douyin);
   }
 
   &.jingdong {
-    background-color: $platform-jingdong;
+    background: linear-gradient(135deg, #ff7566, $platform-jingdong);
   }
 
   &.vip {
-    background-color: $platform-vip;
+    background: linear-gradient(135deg, #ff72bd, $platform-vip);
   }
 
   &.kuaishou {
-    background-color: $platform-kuaishou;
+    background: linear-gradient(135deg, #ff9559, $platform-kuaishou);
   }
 }
 </style>

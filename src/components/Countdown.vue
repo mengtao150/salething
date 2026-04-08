@@ -10,15 +10,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { Clock } from '@element-plus/icons-vue'
-import { getCountdown, getCountdownStatus, formatCountdown } from '@/utils/countdown'
+import { formatCountdown, getCountdown, getCountdownStatus } from '@/utils/countdown'
 
 const props = defineProps<{
   receivedTime?: string
 }>()
 
 const result = ref(getCountdown(props.receivedTime))
+
 const statusClass = computed(() => {
   if (!props.receivedTime) return 'pending'
   return getCountdownStatus(props.receivedTime)
@@ -31,8 +32,15 @@ const displayText = computed(() => {
 
 let timer: number | null = null
 
+watch(
+  () => props.receivedTime,
+  value => {
+    result.value = getCountdown(value)
+  },
+  { immediate: true }
+)
+
 onMounted(() => {
-  // 每分钟更新一次
   timer = window.setInterval(() => {
     result.value = getCountdown(props.receivedTime)
   }, 60000)
@@ -49,38 +57,39 @@ onUnmounted(() => {
 .countdown {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 6px;
+  gap: 6px;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 999px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 700;
 
   .icon {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   &.normal {
-    background-color: #f0f9ff;
+    background: rgba(40, 179, 125, 0.12);
     color: $success-color;
   }
 
   &.warning {
-    background-color: #fef3c7;
+    background: rgba(242, 165, 59, 0.14);
     color: $warning-color;
   }
 
   &.danger {
-    background-color: #fee2e2;
+    background: rgba(228, 93, 111, 0.14);
     color: $danger-color;
   }
 
   &.expired {
-    background-color: #f3f4f6;
-    color: $info-color;
+    background: rgba(123, 135, 156, 0.16);
+    color: #64748b;
   }
 
   &.pending {
-    background-color: #e5e7eb;
+    background: rgba(125, 140, 170, 0.14);
     color: #6b7280;
   }
 }
