@@ -4,9 +4,7 @@
       <div class="hero-copy">
         <span class="hero-eyebrow">SaleThing Dashboard</span>
         <h1>让每一件商品都更清晰、更好管理</h1>
-        <p>
-          用更干净的视图查看库存、倒计时和利润变化，手机上也保持轻盈顺手的浏览体验。
-        </p>
+        <p>用更干净的视图查看库存、倒计时和利润变化，手机上也保持轻盈顺手的浏览体验。</p>
       </div>
 
       <div class="hero-panel">
@@ -40,12 +38,8 @@
         </div>
 
         <div class="button-stack">
-          <el-button type="warning" :icon="Bell" @click="manualCheckReminders">
-            检查倒计时提醒
-          </el-button>
-          <el-button type="info" plain @click="testEmailReminder">
-            测试邮件提醒
-          </el-button>
+          <el-button type="warning" :icon="Bell" @click="manualCheckReminders">检查倒计时提醒</el-button>
+          <el-button type="info" plain @click="testEmailReminder">测试邮件提醒</el-button>
         </div>
       </el-card>
 
@@ -58,7 +52,7 @@
         </div>
 
         <el-row :gutter="12" class="action-row">
-          <el-col :xs="24" :sm="12" :md="12" :lg="10">
+          <el-col :xs="24" :sm="12" :md="12" :lg="8">
             <el-input
               v-model="searchKeyword"
               placeholder="搜索商品名称"
@@ -68,7 +62,19 @@
               @keyup.enter="handleSearch"
             />
           </el-col>
-          <el-col :xs="12" :sm="6" :md="6" :lg="5">
+          <el-col :xs="12" :sm="6" :md="6" :lg="4">
+            <el-select
+              v-model="filterCategory"
+              placeholder="全部类别"
+              clearable
+              style="width: 100%"
+              @change="handleFilter"
+            >
+              <el-option label="全部" value="" />
+              <el-option v-for="category in categoryOptions" :key="category" :label="category" :value="category" />
+            </el-select>
+          </el-col>
+          <el-col :xs="12" :sm="6" :md="6" :lg="4">
             <el-select
               v-model="filterPlatform"
               placeholder="全部平台"
@@ -85,7 +91,7 @@
               <el-option label="快手" value="快手" />
             </el-select>
           </el-col>
-          <el-col :xs="12" :sm="6" :md="6" :lg="5">
+          <el-col :xs="12" :sm="6" :md="6" :lg="4">
             <el-select
               v-model="filterStatus"
               placeholder="全部状态"
@@ -100,9 +106,7 @@
             </el-select>
           </el-col>
           <el-col :xs="24" :sm="24" :md="24" :lg="4">
-            <el-button type="primary" :icon="Plus" @click="showAddDialog" class="create-button">
-              添加商品
-            </el-button>
+            <el-button type="primary" :icon="Plus" @click="showAddDialog" class="create-button">添加商品</el-button>
           </el-col>
         </el-row>
       </el-card>
@@ -114,7 +118,7 @@
       <div class="list-header">
         <div>
           <span class="section-kicker">商品列表</span>
-          <h2>最近管理的商品</h2>
+          <h2>按类别清晰查看商品</h2>
         </div>
         <div class="list-header__meta">
           <span>{{ displayItems.length }} 件</span>
@@ -122,13 +126,25 @@
         </div>
       </div>
 
-      <el-row :gutter="16">
-        <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="item in displayItems" :key="item.id">
-          <ItemCard :item="item" @sell="handleSell" @edit="handleEdit" @delete="handleDelete" />
-        </el-col>
-      </el-row>
+      <div v-if="displayGroups.length" class="category-groups">
+        <section v-for="group in displayGroups" :key="group.category" class="category-section">
+          <div class="category-header" :class="`category-${categoryClassMap[group.category]}`">
+            <div>
+              <h3>{{ group.category }}</h3>
+              <p>{{ group.items.length }} 件商品</p>
+            </div>
+            <el-tag round effect="light">{{ group.items.filter(item => !item.sold).length }} 件在库</el-tag>
+          </div>
 
-      <el-empty v-if="displayItems.length === 0" class="empty-panel" description="还没有符合条件的商品">
+          <el-row :gutter="16">
+            <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="item in group.items" :key="item.id">
+              <ItemCard :item="item" @sell="handleSell" @edit="handleEdit" @delete="handleDelete" />
+            </el-col>
+          </el-row>
+        </section>
+      </div>
+
+      <el-empty v-else class="empty-panel" description="还没有符合条件的商品">
         <el-button type="primary" @click="showAddDialog">添加第一件商品</el-button>
       </el-empty>
     </section>
@@ -232,15 +248,23 @@ import ItemForm from '@/components/ItemForm.vue'
 import StatsCard from '@/components/StatsCard.vue'
 import { emailJsConfig } from '@/config/emailjs'
 import { useItemsStore } from '@/stores/items'
-import type { Item, Platform } from '@/types'
+import type { Item, ItemCategory, Platform } from '@/types'
 import { getCountdown } from '@/utils/countdown'
 import { calculateProfit } from '@/utils/profit'
 import { getExpiredItems, getReminderMessage, getUrgentItems, sendEmailReminder } from '@/utils/reminder'
 
+const categoryOptions: ItemCategory[] = ['鞋子', '书包', '衣服', '其他']
+const categoryClassMap: Record<ItemCategory, string> = {
+  鞋子: 'shoes',
+  书包: 'bag',
+  衣服: 'clothes',
+  其他: 'other'
+}
+
 const itemsStore = useItemsStore()
 
-const userEmail = ref('')
 const searchKeyword = ref('')
+const filterCategory = ref<'' | ItemCategory>('')
 const filterPlatform = ref<'' | Platform>('')
 const filterStatus = ref<'' | 'pending' | 'received' | 'sold'>('')
 
@@ -273,6 +297,10 @@ const displayItems = computed(() => {
 
   if (searchKeyword.value) {
     items = itemsStore.searchItems(searchKeyword.value)
+  }
+
+  if (filterCategory.value) {
+    items = items.filter(item => item.category === filterCategory.value)
   }
 
   if (filterPlatform.value) {
@@ -320,59 +348,67 @@ const displayItems = computed(() => {
   })
 })
 
+const displayGroups = computed(() =>
+  categoryOptions
+    .map(category => ({
+      category,
+      items: displayItems.value.filter(item => item.category === category)
+    }))
+    .filter(group => group.items.length > 0)
+)
+
 const activeItemCount = computed(() => itemsStore.allItems.filter(item => !item.sold).length)
 const soldItemCount = computed(() => itemsStore.allItems.filter(item => item.sold).length)
-const urgentItemCount = computed(() => {
-  const urgentItems = getUrgentItems(itemsStore.allItems)
-  const expiredItems = getExpiredItems(itemsStore.allItems)
-  return urgentItems.length + expiredItems.length
-})
+const urgentItemCount = computed(() => getUrgentItems(itemsStore.allItems).length + getExpiredItems(itemsStore.allItems).length)
 
 onMounted(async () => {
   await itemsStore.init()
-  checkReminders()
+  await checkReminders()
 })
 
 async function checkReminders() {
-  const allItems = itemsStore.allItems
-  const urgentItems = getUrgentItems(allItems)
-  const expiredItems = getExpiredItems(allItems)
+  const urgentItems = getUrgentItems(itemsStore.allItems)
+  const expiredItems = getExpiredItems(itemsStore.allItems)
 
   if (urgentItems.length === 0 && expiredItems.length === 0) {
+    cleanupReminderCache([])
     return
   }
 
-  const lastSentTime = localStorage.getItem('last_email_sent_time')
-  const lastSentItems = localStorage.getItem('last_sent_items')
-  const now = Date.now()
-  const oneDay = 24 * 60 * 60 * 1000
-  const currentItemIds = [...urgentItems.map(item => item.id), ...expiredItems.map(item => item.id)].sort()
-  const currentItemsKey = JSON.stringify(currentItemIds)
+  const reminderCache = getReminderCache()
+  const currentReminderEntries = [
+    ...urgentItems.map(item => ({ id: item.id, status: 'urgent' as const })),
+    ...expiredItems.map(item => ({ id: item.id, status: 'expired' as const }))
+  ]
 
-  if (lastSentTime && lastSentItems === currentItemsKey) {
-    const timeSinceLastSent = now - Number.parseInt(lastSentTime, 10)
-    if (timeSinceLastSent < oneDay) {
-      return
-    }
+  cleanupReminderCache(currentReminderEntries.map(entry => `${entry.id}:${entry.status}`))
+
+  const unsentUrgentItems = urgentItems.filter(item => reminderCache[`${item.id}:urgent`] !== true)
+  const unsentExpiredItems = expiredItems.filter(item => reminderCache[`${item.id}:expired`] !== true)
+
+  if (unsentUrgentItems.length === 0 && unsentExpiredItems.length === 0) {
+    return
   }
 
-  const savedEmail = localStorage.getItem('user_email')
-  const email = savedEmail || emailJsConfig.targetEmail || '2640622467@qq.com'
-  const success = await sendEmailReminder(urgentItems, expiredItems, email)
+  const email = localStorage.getItem('user_email') || emailJsConfig.targetEmail || '2640622467@qq.com'
+  const success = await sendEmailReminder(unsentUrgentItems, unsentExpiredItems, email)
 
   if (success) {
-    localStorage.setItem('last_email_sent_time', String(now))
-    localStorage.setItem('last_sent_items', currentItemsKey)
+    unsentUrgentItems.forEach(item => {
+      reminderCache[`${item.id}:urgent`] = true
+    })
+    unsentExpiredItems.forEach(item => {
+      reminderCache[`${item.id}:expired`] = true
+    })
+    saveReminderCache(reminderCache)
 
-    ElMessage.success(
-      `邮件提醒已发送到 ${email}，${urgentItems.length} 件即将超期，${expiredItems.length} 件已超期`
-    )
+    ElMessage.success(`邮件提醒已发送到 ${email}，本次新增 ${unsentUrgentItems.length + unsentExpiredItems.length} 件提醒商品`)
   }
 
-  const message = getReminderMessage(urgentItems, expiredItems)
+  const message = getReminderMessage(unsentUrgentItems, unsentExpiredItems)
   ElMessageBox.alert(`${message}\n\n邮件提醒已发送到：${email}`, '退货倒计时提醒', {
     confirmButtonText: '我知道了',
-    type: urgentItems.length > 0 ? 'warning' : 'info',
+    type: unsentUrgentItems.length > 0 ? 'warning' : 'info',
     customClass: 'reminder-message-box'
   }).catch(() => {})
 }
@@ -386,13 +422,19 @@ function manualCheckReminders() {
     return
   }
 
-  checkReminders()
+  const message = getReminderMessage(urgentItems, expiredItems)
+  ElMessageBox.alert(message, '当前提醒商品', {
+    confirmButtonText: '知道了',
+    type: urgentItems.length > 0 ? 'warning' : 'info',
+    customClass: 'reminder-message-box'
+  }).catch(() => {})
 }
 
 function testEmailReminder() {
   const testItem: Item = {
     id: 'test-123',
     name: '测试商品-请尽快处理',
+    category: '其他',
     platform: '淘宝',
     buyPrice: 100,
     buyTime: new Date().toISOString(),
@@ -505,6 +547,26 @@ async function handleDelete(id: string) {
   await itemsStore.deleteItem(id)
   ElMessage.success('已删除')
 }
+
+type ReminderCache = Record<string, boolean>
+
+function getReminderCache(): ReminderCache {
+  try {
+    return JSON.parse(localStorage.getItem('sent_return_reminders') || '{}')
+  } catch {
+    return {}
+  }
+}
+
+function saveReminderCache(cache: ReminderCache) {
+  localStorage.setItem('sent_return_reminders', JSON.stringify(cache))
+}
+
+function cleanupReminderCache(validKeys: string[]) {
+  const cache = getReminderCache()
+  const nextCache = Object.fromEntries(Object.entries(cache).filter(([key]) => validKeys.includes(key)))
+  saveReminderCache(nextCache)
+}
 </script>
 
 <style scoped lang="scss">
@@ -526,7 +588,8 @@ async function handleDelete(id: string) {
 .hero-copy,
 .hero-panel,
 .surface-card,
-.list-header {
+.list-header,
+.category-header {
   border: 1px solid rgba(255, 255, 255, 0.72);
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(18px);
@@ -680,6 +743,53 @@ async function handleDelete(id: string) {
   }
 }
 
+.category-groups {
+  display: grid;
+  gap: 24px;
+}
+
+.category-section {
+  display: grid;
+  gap: 14px;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 24px;
+
+  h3 {
+    margin: 0;
+    font-size: 20px;
+    color: #172b4d;
+  }
+
+  p {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: #7d8aa2;
+  }
+
+  &.category-shoes {
+    background: linear-gradient(135deg, rgba(91, 125, 239, 0.18), rgba(255, 255, 255, 0.72));
+  }
+
+  &.category-bag {
+    background: linear-gradient(135deg, rgba(40, 179, 125, 0.16), rgba(255, 255, 255, 0.72));
+  }
+
+  &.category-clothes {
+    background: linear-gradient(135deg, rgba(242, 165, 59, 0.16), rgba(255, 255, 255, 0.72));
+  }
+
+  &.category-other {
+    background: linear-gradient(135deg, rgba(139, 149, 170, 0.16), rgba(255, 255, 255, 0.72));
+  }
+}
+
 .empty-panel {
   margin-top: 24px;
   padding: 24px 0;
@@ -757,7 +867,8 @@ async function handleDelete(id: string) {
   .hero-panel,
   .surface-card,
   .list-header,
-  .empty-panel {
+  .empty-panel,
+  .category-header {
     border-radius: 24px;
   }
 
@@ -789,7 +900,8 @@ async function handleDelete(id: string) {
   }
 
   .section-title,
-  .list-header {
+  .list-header,
+  .category-header {
     flex-direction: column;
     align-items: stretch;
   }

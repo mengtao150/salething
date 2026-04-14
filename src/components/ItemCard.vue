@@ -1,8 +1,9 @@
 <template>
-  <el-card class="item-card" :class="{ 'is-sold': item.sold }" shadow="never">
+  <el-card class="item-card" :class="[`category-${categoryClass}`, { 'is-sold': item.sold }]" shadow="never">
     <div class="item-card__top">
       <div class="meta">
         <span class="meta-id">#{{ item.id }}</span>
+        <span class="category-pill">{{ item.category }}</span>
         <span v-if="item.sold" class="sold-pill">已卖出</span>
       </div>
       <PlatformBadge :platform="item.platform" />
@@ -80,6 +81,17 @@ const profitClass = computed(() => {
   return ''
 })
 
+const categoryClass = computed(() => {
+  const map = {
+    鞋子: 'shoes',
+    书包: 'bag',
+    衣服: 'clothes',
+    其他: 'other'
+  }
+
+  return map[props.item.category] || 'other'
+})
+
 function formatDate(dateStr: string) {
   const date = new Date(dateStr)
   return `${date.getMonth() + 1}/${date.getDate()}`
@@ -104,10 +116,27 @@ function handleDelete() {
   margin-bottom: 16px;
   border-radius: 28px;
   transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+  border-top: 4px solid transparent !important;
 
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 24px 46px rgba(15, 23, 42, 0.12) !important;
+  }
+
+  &.category-shoes {
+    border-top-color: #5b7def !important;
+  }
+
+  &.category-bag {
+    border-top-color: #28b37d !important;
+  }
+
+  &.category-clothes {
+    border-top-color: #f2a53b !important;
+  }
+
+  &.category-other {
+    border-top-color: #8b95aa !important;
   }
 
   &.is-sold {
@@ -141,22 +170,30 @@ function handleDelete() {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
-.meta-id {
+.meta-id,
+.category-pill,
+.sold-pill {
   padding: 6px 10px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
+}
+
+.meta-id {
   color: #5674d7;
   background: rgba(91, 125, 239, 0.1);
 }
 
+.category-pill {
+  color: #42516c;
+  background: rgba(125, 140, 170, 0.14);
+}
+
 .sold-pill {
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
   color: #67768f;
   background: rgba(149, 158, 178, 0.14);
 }

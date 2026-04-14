@@ -1,10 +1,13 @@
 export type Platform = '拼多多' | '淘宝' | '抖音' | '京东' | '唯品会' | '快手'
 
+export type ItemCategory = '鞋子' | '书包' | '衣服' | '其他'
+
 export type ItemStatus = 'pending' | 'received' | 'sold'
 
 export interface Item {
   id: string
   name: string
+  category: ItemCategory
   platform: Platform
   buyPrice: number
   buyTime: string

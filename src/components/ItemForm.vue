@@ -3,7 +3,7 @@
     ref="formRef"
     :model="formData"
     :rules="rules"
-    label-width="80px"
+    label-width="88px"
     label-position="left"
     class="item-form"
   >
@@ -11,7 +11,7 @@
       <div class="voice-input-container">
         <VoiceRecordButton @recording-complete="handleVoiceInput" />
         <el-text size="small" style="margin-left: 12px">
-          点击麦克风开始录音，描述商品信息，例如：我在淘宝买了 iPhone 15 Pro，花了 4999 元。
+          点击麦克风开始录音，描述商品信息，例如：我在淘宝买了一双运动鞋，花了 499 元。
         </el-text>
       </div>
 
@@ -26,6 +26,10 @@
 
     <el-form-item label="商品名称" prop="name">
       <el-input v-model="formData.name" placeholder="请输入商品名称" />
+    </el-form-item>
+
+    <el-form-item label="商品类别" prop="category">
+      <el-segmented v-model="formData.category" :options="categoryOptions" class="category-segment" />
     </el-form-item>
 
     <el-form-item label="购买平台" prop="platform">
@@ -118,10 +122,12 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
-import type { Item, Platform } from '@/types'
+import type { Item, ItemCategory, Platform } from '@/types'
 import ExtractedDataPreview from '@/components/ExtractedDataPreview.vue'
 import VoiceRecordButton from '@/components/VoiceRecordButton.vue'
 import type { ExtractedItemData } from '@/utils/aiExtractor'
+
+const categoryOptions = ['鞋子', '书包', '衣服', '其他']
 
 const props = defineProps<{
   item?: Item
@@ -138,6 +144,7 @@ const currentVoiceText = ref('')
 
 const formData = reactive({
   name: props.item?.name || '',
+  category: (props.item?.category || '其他') as ItemCategory,
   platform: (props.item?.platform || '淘宝') as Platform,
   buyPrice: props.item?.buyPrice || 0,
   buyTime: props.item?.buyTime || new Date().toISOString(),
@@ -152,6 +159,7 @@ const formData = reactive({
 
 const rules: FormRules = {
   name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
+  category: [{ required: true, message: '请选择商品类别', trigger: 'change' }],
   platform: [{ required: true, message: '请选择购买平台', trigger: 'change' }],
   buyPrice: [{ required: true, message: '请输入买入价格', trigger: 'blur' }],
   receivedTime: [{ required: true, message: '请选择收货时间', trigger: 'change' }]
@@ -197,6 +205,7 @@ async function submit() {
 
     emit('submit', {
       name: formData.name,
+      category: formData.category,
       platform: formData.platform,
       buyPrice: formData.buyPrice,
       buyTime: new Date().toISOString(),
@@ -229,6 +238,10 @@ defineExpose({
   :deep(.el-form-item__label) {
     font-weight: 500;
   }
+}
+
+.category-segment {
+  width: 100%;
 }
 
 .voice-input-section {
@@ -274,7 +287,7 @@ defineExpose({
 @media (max-width: 768px) {
   .item-form {
     :deep(.el-form-item__label) {
-      width: 70px !important;
+      width: 76px !important;
     }
   }
 

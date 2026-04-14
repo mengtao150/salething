@@ -51,6 +51,7 @@ class StorageAPI {
     return data.map(item => ({
       id: item.id,
       name: item.name,
+      category: item.category || '其他',
       platform: item.platform,
       buyPrice: item.buy_price,
       buyTime: item.buy_time,
@@ -71,6 +72,7 @@ class StorageAPI {
     return {
       id: item.id,
       name: item.name,
+      category: item.category,
       platform: item.platform,
       buy_price: item.buyPrice,
       buy_time: item.buyTime,
