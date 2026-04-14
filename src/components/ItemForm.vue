@@ -11,7 +11,8 @@
       <div class="voice-input-container">
         <VoiceRecordButton @recording-complete="handleVoiceInput" />
         <el-text size="small" style="margin-left: 12px">
-          点击麦克风开始录音，描述商品信息，例如：我在淘宝买了一双运动鞋，花了 499 元。
+          点击麦克风开始录音，描述商品信息，例如：我在淘宝买了一双运动鞋，42 码，货号
+          NK-001，花了 499 元，昨天收到，预计卖 699 元，快递费 8 元。
         </el-text>
       </div>
 
@@ -30,6 +31,24 @@
 
     <el-form-item label="商品类别" prop="category">
       <el-segmented v-model="formData.category" :options="categoryOptions" class="category-segment" />
+    </el-form-item>
+
+    <el-form-item label="尺码">
+      <el-select
+        v-model="formData.size"
+        placeholder="请选择尺码"
+        clearable
+        filterable
+        allow-create
+        default-first-option
+        style="width: 100%"
+      >
+        <el-option v-for="size in sizeOptions" :key="size" :label="size" :value="size" />
+      </el-select>
+    </el-form-item>
+
+    <el-form-item label="货号">
+      <el-input v-model="formData.sku" placeholder="请输入货号" />
     </el-form-item>
 
     <el-form-item label="购买平台" prop="platform">
@@ -120,14 +139,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { Item, ItemCategory, Platform } from '@/types'
 import ExtractedDataPreview from '@/components/ExtractedDataPreview.vue'
 import VoiceRecordButton from '@/components/VoiceRecordButton.vue'
 import type { ExtractedItemData } from '@/utils/aiExtractor'
 
-const categoryOptions = ['鞋子', '书包', '衣服', '其他']
+const categoryOptions: ItemCategory[] = ['鞋子', '书包', '衣服', '其他']
+const sizeOptionsMap: Record<ItemCategory, string[]> = {
+  鞋子: ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45'],
+  书包: ['小号', '中号', '大号', '均码'],
+  衣服: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '均码'],
+  其他: ['小号', '中号', '大号', '均码']
+}
 
 const props = defineProps<{
   item?: Item
@@ -145,6 +170,8 @@ const currentVoiceText = ref('')
 const formData = reactive({
   name: props.item?.name || '',
   category: (props.item?.category || '其他') as ItemCategory,
+  size: props.item?.size || '',
+  sku: props.item?.sku || '',
   platform: (props.item?.platform || '淘宝') as Platform,
   buyPrice: props.item?.buyPrice || 0,
   buyTime: props.item?.buyTime || new Date().toISOString(),
@@ -157,6 +184,22 @@ const formData = reactive({
   sellTime: props.item?.sellTime ? new Date(props.item.sellTime) : undefined
 })
 
+const sizeOptions = computed(() => sizeOptionsMap[formData.category] || sizeOptionsMap.其他)
+
+watch(
+  () => formData.category,
+  nextCategory => {
+    if (!formData.size) {
+      return
+    }
+
+    const options = sizeOptionsMap[nextCategory] || []
+    if (options.length && !options.includes(formData.size)) {
+      formData.size = ''
+    }
+  }
+)
+
 const rules: FormRules = {
   name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
   category: [{ required: true, message: '请选择商品类别', trigger: 'change' }],
@@ -167,13 +210,25 @@ const rules: FormRules = {
 
 function handleVoiceInput(text: string) {
   currentVoiceText.value = text
-  console.log('[讯飞转写结果]', text)
+  console.log('[讯飞语音转文字]', text)
   showPreviewDialog.value = true
 }
 
 function handleExtractedDataConfirm(data: ExtractedItemData) {
   if (data.name) {
     formData.name = data.name
+  }
+
+  if (data.category) {
+    formData.category = data.category
+  }
+
+  if (data.size) {
+    formData.size = data.size
+  }
+
+  if (data.sku) {
+    formData.sku = data.sku
   }
 
   if (data.platform) {
@@ -206,6 +261,8 @@ async function submit() {
     emit('submit', {
       name: formData.name,
       category: formData.category,
+      size: formData.size || undefined,
+      sku: formData.sku || undefined,
       platform: formData.platform,
       buyPrice: formData.buyPrice,
       buyTime: new Date().toISOString(),

@@ -4,6 +4,7 @@
       <div class="meta">
         <span class="meta-id">#{{ item.id }}</span>
         <span class="category-pill">{{ item.category }}</span>
+        <span v-if="item.size" class="detail-pill">{{ item.size }}</span>
         <span v-if="item.sold" class="sold-pill">已卖出</span>
       </div>
       <PlatformBadge :platform="item.platform" />
@@ -27,6 +28,14 @@
           <span class="label">收货时间</span>
           <strong>{{ item.receivedTime ? formatDate(item.receivedTime) : '待收货' }}</strong>
         </div>
+        <div class="info-block" v-if="item.sku">
+          <span class="label">货号</span>
+          <strong>{{ item.sku }}</strong>
+        </div>
+        <div class="info-block" v-if="item.size">
+          <span class="label">尺码</span>
+          <strong>{{ item.size }}</strong>
+        </div>
       </div>
 
       <div class="countdown-block">
@@ -43,9 +52,7 @@
     </div>
 
     <div class="item-card__footer">
-      <el-button v-if="item.receivedTime && !item.sold" type="success" @click="handleSell">
-        确认卖出
-      </el-button>
+      <el-button v-if="item.receivedTime && !item.sold" type="success" @click="handleSell">确认卖出</el-button>
       <el-button type="info" plain @click="handleEdit">编辑</el-button>
       <el-popconfirm title="确定删除这件商品吗？" @confirm="handleDelete">
         <template #reference>
@@ -175,6 +182,7 @@ function handleDelete() {
 
 .meta-id,
 .category-pill,
+.detail-pill,
 .sold-pill {
   padding: 6px 10px;
   border-radius: 999px;
@@ -191,6 +199,11 @@ function handleDelete() {
 .category-pill {
   color: #42516c;
   background: rgba(125, 140, 170, 0.14);
+}
+
+.detail-pill {
+  color: #1c304f;
+  background: rgba(91, 125, 239, 0.1);
 }
 
 .sold-pill {

@@ -39,12 +39,34 @@
             {{ field }}
           </el-tag>
         </div>
-        <p class="missing-tip">可以直接确认已识别内容，缺失项稍后继续语音补充或手动填写。</p>
+        <p class="missing-tip">可以先确认已识别内容，缺失字段后续继续语音补充或手动填写。</p>
       </div>
 
       <el-form ref="formRef" :model="formData" label-width="90px">
         <el-form-item label="商品名称">
           <el-input v-model="formData.name" placeholder="可继续补充商品名称" />
+        </el-form-item>
+
+        <el-form-item label="商品类别">
+          <el-segmented v-model="formData.category" :options="categoryOptions" class="category-segment" />
+        </el-form-item>
+
+        <el-form-item label="尺码">
+          <el-select
+            v-model="formData.size"
+            placeholder="可继续选择或填写尺码"
+            clearable
+            filterable
+            allow-create
+            default-first-option
+            style="width: 100%"
+          >
+            <el-option v-for="size in sizeOptions" :key="size" :label="size" :value="size" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="货号">
+          <el-input v-model="formData.sku" placeholder="可继续补充货号" />
         </el-form-item>
 
         <el-form-item label="购买平台">
@@ -115,13 +137,21 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { Close, Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { extractItemFromVoice } from '@/utils/aiExtractor'
 import type { ExtractedItemData } from '@/utils/aiExtractor'
-import type { Platform } from '@/types'
+import type { ItemCategory, Platform } from '@/types'
+
+const categoryOptions: ItemCategory[] = ['鞋子', '书包', '衣服', '其他']
+const sizeOptionsMap: Record<ItemCategory, string[]> = {
+  鞋子: ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45'],
+  书包: ['小号', '中号', '大号', '均码'],
+  衣服: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '均码'],
+  其他: ['小号', '中号', '大号', '均码']
+}
 
 const props = defineProps<{
   modelValue: boolean
@@ -141,12 +171,17 @@ const missingFields = ref<string[]>([])
 const formRef = ref<FormInstance>()
 const formData = reactive({
   name: '',
+  category: '其他' as ItemCategory,
+  size: '',
+  sku: '',
   platform: undefined as Platform | undefined,
   buyPrice: undefined as number | undefined,
   receivedTime: undefined as string | undefined,
   expectedSellPrice: undefined as number | undefined,
   shippingFee: undefined as number | undefined
 })
+
+const sizeOptions = computed(() => sizeOptionsMap[formData.category] || sizeOptionsMap.其他)
 
 watch(
   () => props.modelValue,
@@ -171,6 +206,9 @@ async function processVoiceText(text: string) {
     const result = await extractItemFromVoice(text)
 
     formData.name = result.name ?? ''
+    formData.category = result.category ?? '其他'
+    formData.size = result.size ?? ''
+    formData.sku = result.sku ?? ''
     formData.platform = result.platform
     formData.buyPrice = result.buyPrice
     formData.receivedTime = result.receivedTime
@@ -178,7 +216,7 @@ async function processVoiceText(text: string) {
     formData.shippingFee = result.shippingFee
     missingFields.value = result.missingFields
 
-    ElMessage.success(result.missingFields.length ? '已提取部分信息，请确认后补充缺失项' : 'AI 提取成功')
+    ElMessage.success(result.missingFields.length ? '已提取部分信息，请确认后补充缺失字段' : 'AI 提取成功')
   } catch (e: any) {
     error.value = e.message || '提取失败，请重试'
   } finally {
@@ -197,6 +235,9 @@ function handleConfirm() {
 
   emit('confirm', {
     name: formData.name || undefined,
+    category: formData.category,
+    size: formData.size || undefined,
+    sku: formData.sku || undefined,
     platform: formData.platform,
     buyPrice: formData.buyPrice,
     receivedTime: formData.receivedTime,
@@ -271,5 +312,9 @@ function handleClose() {
   margin: 10px 0 0;
   font-size: 12px;
   color: #7d8aa2;
+}
+
+.category-segment {
+  width: 100%;
 }
 </style>

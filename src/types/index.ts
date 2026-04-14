@@ -8,6 +8,8 @@ export interface Item {
   id: string
   name: string
   category: ItemCategory
+  size?: string
+  sku?: string
   platform: Platform
   buyPrice: number
   buyTime: string
