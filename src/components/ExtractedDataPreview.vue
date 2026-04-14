@@ -99,6 +99,8 @@
             format="YYYY-MM-DD HH:mm"
             value-format="YYYY-MM-DD HH:mm"
             style="width: 100%"
+            :teleported="false"
+            popper-class="mobile-date-popper"
           />
         </el-form-item>
 

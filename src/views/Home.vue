@@ -168,7 +168,7 @@
       :width="dialogWidth"
       :before-close="handleCloseEditDialog"
     >
-      <ItemForm ref="editFormRef" :item="editingItem" @submit="handleEditSubmit" />
+      <ItemForm ref="editFormRef" :key="editingItem?.id || 'edit-form'" :item="editingItem" @submit="handleEditSubmit" />
 
       <div v-if="editingItem" class="profit-estimate">
         <el-divider />

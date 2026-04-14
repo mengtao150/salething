@@ -79,6 +79,8 @@
         placeholder="选择收货时间"
         style="width: 100%"
         format="YYYY-MM-DD HH:mm"
+        :teleported="false"
+        popper-class="mobile-date-popper"
       />
     </el-form-item>
 
@@ -126,6 +128,8 @@
           placeholder="卖出时间"
           style="width: 100%"
           format="YYYY-MM-DD HH:mm"
+          :teleported="false"
+          popper-class="mobile-date-popper"
         />
       </el-form-item>
     </template>
@@ -168,20 +172,20 @@ const showPreviewDialog = ref(false)
 const currentVoiceText = ref('')
 
 const formData = reactive({
-  name: props.item?.name || '',
-  category: (props.item?.category || '其他') as ItemCategory,
-  size: props.item?.size || '',
-  sku: props.item?.sku || '',
-  platform: (props.item?.platform || '淘宝') as Platform,
-  buyPrice: props.item?.buyPrice || 0,
-  buyTime: props.item?.buyTime || new Date().toISOString(),
-  expectedSellPrice: props.item?.expectedSellPrice,
-  shippingFee: props.item?.shippingFee,
-  received: props.item?.receivedTime ? true : false,
-  receivedTime: props.item?.receivedTime ? new Date(props.item.receivedTime) : undefined,
-  sold: props.item?.sold || false,
-  actualSellPrice: props.item?.actualSellPrice,
-  sellTime: props.item?.sellTime ? new Date(props.item.sellTime) : undefined
+  name: '',
+  category: '其他' as ItemCategory,
+  size: '',
+  sku: '',
+  platform: '淘宝' as Platform,
+  buyPrice: 0,
+  buyTime: new Date().toISOString(),
+  expectedSellPrice: undefined as number | undefined,
+  shippingFee: undefined as number | undefined,
+  received: false,
+  receivedTime: undefined as Date | undefined,
+  sold: false,
+  actualSellPrice: undefined as number | undefined,
+  sellTime: undefined as Date | undefined
 })
 
 const sizeOptions = computed(() => sizeOptionsMap[formData.category] || sizeOptionsMap.其他)
@@ -207,6 +211,34 @@ const rules: FormRules = {
   buyPrice: [{ required: true, message: '请输入买入价格', trigger: 'blur' }],
   receivedTime: [{ required: true, message: '请选择收货时间', trigger: 'change' }]
 }
+
+function syncFormData(item?: Item) {
+  formData.name = item?.name || ''
+  formData.category = (item?.category || '其他') as ItemCategory
+  formData.size = item?.size || ''
+  formData.sku = item?.sku || ''
+  formData.platform = (item?.platform || '淘宝') as Platform
+  formData.buyPrice = item?.buyPrice || 0
+  formData.buyTime = item?.buyTime || new Date().toISOString()
+  formData.expectedSellPrice = item?.expectedSellPrice
+  formData.shippingFee = item?.shippingFee
+  formData.received = !!item?.receivedTime
+  formData.receivedTime = item?.receivedTime ? new Date(item.receivedTime) : undefined
+  formData.sold = item?.sold || false
+  formData.actualSellPrice = item?.actualSellPrice
+  formData.sellTime = item?.sellTime ? new Date(item.sellTime) : undefined
+}
+
+watch(
+  () => props.item,
+  item => {
+    syncFormData(item)
+    currentVoiceText.value = ''
+    showPreviewDialog.value = false
+    formRef.value?.clearValidate()
+  },
+  { immediate: true }
+)
 
 function handleVoiceInput(text: string) {
   currentVoiceText.value = text
@@ -281,7 +313,10 @@ async function submit() {
 }
 
 function reset() {
-  formRef.value?.resetFields()
+  syncFormData(props.item)
+  currentVoiceText.value = ''
+  showPreviewDialog.value = false
+  formRef.value?.clearValidate()
 }
 
 defineExpose({
