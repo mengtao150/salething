@@ -67,6 +67,29 @@ export const useItemsStore = defineStore('items', () => {
     return success
   }
 
+  async function addItems(importItems: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>[]) {
+    if (!importItems.length) return true
+
+    const baseTime = Date.now()
+    const nextItems: Item[] = []
+
+    importItems.forEach((item, index) => {
+      const timestamp = new Date(baseTime + index).toISOString()
+      nextItems.push({
+        ...item,
+        id: generateId([...items.value, ...nextItems]),
+        createdAt: timestamp,
+        updatedAt: timestamp
+      })
+    })
+
+    const success = await storageApi.addItems(nextItems)
+    if (success) {
+      items.value.push(...nextItems)
+    }
+    return success
+  }
+
   // 更新物品
   async function updateItem(id: string, updates: Partial<Item>) {
     const index = items.value.findIndex(item => item.id === id)
@@ -170,6 +193,7 @@ export const useItemsStore = defineStore('items', () => {
     getItemsByPlatform,
     searchItems,
     addItem,
+    addItems,
     updateItem,
     deleteItem,
     confirmReceive,

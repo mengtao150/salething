@@ -47,7 +47,7 @@
         <div class="section-title">
           <div>
             <span class="section-kicker">快捷操作</span>
-            <h2>筛选与录入</h2>
+            <h2>筛选、录入与导入</h2>
           </div>
         </div>
 
@@ -105,10 +105,17 @@
               <el-option label="已卖出" value="sold" />
             </el-select>
           </el-col>
-          <el-col :xs="24" :sm="24" :md="24" :lg="4">
+          <el-col :xs="24" :sm="12" :md="12" :lg="4">
+            <el-button type="info" plain :icon="Upload" @click="openExcelImport" class="create-button" :loading="importingExcel">
+              Excel导入
+            </el-button>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="12" :lg="4">
             <el-button type="primary" :icon="Plus" @click="showAddDialog" class="create-button">添加商品</el-button>
           </el-col>
         </el-row>
+
+        <input ref="excelInputRef" type="file" accept=".xlsx,.xls" class="excel-input" @change="handleExcelFileChange" />
       </el-card>
     </section>
 
@@ -240,7 +247,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Bell, Plus, Search } from '@element-plus/icons-vue'
+import { Bell, Plus, Search, Upload } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ItemCard from '@/components/ItemCard.vue'
 import ItemChart from '@/components/ItemChart.vue'
@@ -250,6 +257,7 @@ import { emailJsConfig } from '@/config/emailjs'
 import { useItemsStore } from '@/stores/items'
 import type { Item, ItemCategory, Platform } from '@/types'
 import { getCountdown } from '@/utils/countdown'
+import { parseExcelFile } from '@/utils/excelImport'
 import { calculateProfit } from '@/utils/profit'
 import { getExpiredItems, getReminderMessage, getUrgentItems, sendEmailReminder } from '@/utils/reminder'
 
@@ -271,9 +279,11 @@ const filterStatus = ref<'' | 'pending' | 'received' | 'sold'>('')
 const addDialogVisible = ref(false)
 const editDialogVisible = ref(false)
 const sellDialogVisible = ref(false)
+const importingExcel = ref(false)
 
 const addFormRef = ref()
 const editFormRef = ref()
+const excelInputRef = ref<HTMLInputElement>()
 
 const editingItem = ref<Item>()
 const sellingItem = ref<Item>()
@@ -477,6 +487,40 @@ function showAddDialog() {
   addDialogVisible.value = true
 }
 
+function openExcelImport() {
+  excelInputRef.value?.click()
+}
+
+async function handleExcelFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) {
+    return
+  }
+
+  importingExcel.value = true
+  try {
+    const result = await parseExcelFile(file)
+    await itemsStore.addItems(result.items)
+    await checkReminders()
+
+    ElMessage.success(`Excel 导入成功，共导入 ${result.items.length} 件商品`)
+
+    if (result.warnings.length) {
+      ElMessageBox.alert(formatWarningsMessage(result.warnings), '导入提示', {
+        confirmButtonText: '知道了',
+        type: 'warning',
+        customClass: 'reminder-message-box'
+      }).catch(() => {})
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.message || 'Excel 导入失败')
+  } finally {
+    importingExcel.value = false
+    input.value = ''
+  }
+}
+
 function handleCloseAddDialog() {
   addFormRef.value?.reset()
   addDialogVisible.value = false
@@ -546,6 +590,15 @@ async function handleEditSubmit(data: Omit<Item, 'id' | 'createdAt' | 'updatedAt
 async function handleDelete(id: string) {
   await itemsStore.deleteItem(id)
   ElMessage.success('已删除')
+}
+
+function formatWarningsMessage(warnings: string[]) {
+  const preview = warnings.slice(0, 8).join('\n')
+  const hiddenCount = warnings.length - 8
+  if (hiddenCount > 0) {
+    return `${preview}\n\n另有 ${hiddenCount} 条提示未展开显示。`
+  }
+  return preview
 }
 
 type ReminderCache = Record<string, boolean>
@@ -720,6 +773,10 @@ function cleanupReminderCache(validKeys: string[]) {
 
 .create-button {
   width: 100%;
+}
+
+.excel-input {
+  display: none;
 }
 
 .items-section {

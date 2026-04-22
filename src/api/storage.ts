@@ -23,6 +23,13 @@ class StorageAPI {
     return true
   }
 
+  async addItems(items: Item[]): Promise<boolean> {
+    const dbItems = items.map(item => this.transformToDB(item))
+    const { error } = await supabase.from(TABLE_NAME).insert(dbItems)
+    if (error) throw error
+    return true
+  }
+
   // 更新物品
   async updateItem(id: string, updates: Partial<Item>): Promise<boolean> {
     const dbUpdates = this.transformToDB({
