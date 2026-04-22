@@ -332,20 +332,10 @@ const displayItems = computed(() => {
     }
 
     if (!a.sold && !b.sold) {
-      const aCountdown = a.receivedTime ? getCountdown(a.receivedTime) : null
-      const bCountdown = b.receivedTime ? getCountdown(b.receivedTime) : null
-
-      if (aCountdown && bCountdown) {
-        const aMinutes = (aCountdown.days || 0) * 24 * 60 + (aCountdown.hours || 0) * 60 + (aCountdown.minutes || 0)
-        const bMinutes = (bCountdown.days || 0) * 24 * 60 + (bCountdown.hours || 0) * 60 + (bCountdown.minutes || 0)
-
-        if (aCountdown.isExpired && !bCountdown.isExpired) return -1
-        if (!aCountdown.isExpired && bCountdown.isExpired) return 1
-        return aMinutes - bMinutes
+      const countdownOrder = getCountdownSortValue(a) - getCountdownSortValue(b)
+      if (countdownOrder !== 0) {
+        return countdownOrder
       }
-
-      if (aCountdown && !bCountdown) return -1
-      if (!aCountdown && bCountdown) return 1
     }
 
     if (a.sold && b.sold) {
@@ -365,6 +355,11 @@ const displayGroups = computed(() =>
       items: displayItems.value.filter(item => item.category === category)
     }))
     .filter(group => group.items.length > 0)
+    .sort((a, b) => {
+      const aPriority = Math.min(...a.items.map(getCountdownSortValue))
+      const bPriority = Math.min(...b.items.map(getCountdownSortValue))
+      return aPriority - bPriority
+    })
 )
 
 const activeItemCount = computed(() => itemsStore.allItems.filter(item => !item.sold).length)
@@ -590,6 +585,23 @@ async function handleEditSubmit(data: Omit<Item, 'id' | 'createdAt' | 'updatedAt
 async function handleDelete(id: string) {
   await itemsStore.deleteItem(id)
   ElMessage.success('已删除')
+}
+
+function getCountdownSortValue(item: Item) {
+  if (item.sold) {
+    return Number.POSITIVE_INFINITY
+  }
+
+  const countdown = item.receivedTime ? getCountdown(item.receivedTime) : null
+  if (!countdown) {
+    return Number.MAX_SAFE_INTEGER
+  }
+
+  if (countdown.isExpired) {
+    return -1
+  }
+
+  return countdown.days * 24 * 60 + countdown.hours * 60 + countdown.minutes
 }
 
 function formatWarningsMessage(warnings: string[]) {
