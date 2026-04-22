@@ -32,7 +32,7 @@ const props = defineProps<{
 
 const overviewCards = computed(() => [
   {
-    label: '总商品数',
+    label: '商品总数',
     value: String(props.stats.totalItems),
     hint: '当前所有记录',
     tone: 'tone-blue'
@@ -40,19 +40,19 @@ const overviewCards = computed(() => [
   {
     label: '待收货',
     value: String(props.stats.pendingItems),
-    hint: '等待入库确认',
+    hint: '等待入仓确认',
     tone: 'tone-slate'
   },
   {
-    label: '倒计时中',
+    label: '入仓中',
     value: String(props.stats.receivedItems),
-    hint: '已收货待处理',
+    hint: '正在倒计时',
     tone: 'tone-amber'
   },
   {
-    label: '已卖出',
+    label: '已售/成交',
     value: String(props.stats.soldItems),
-    hint: '已完成成交',
+    hint: '包含售出与交易成功',
     tone: 'tone-green'
   }
 ])

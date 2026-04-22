@@ -110,6 +110,7 @@ export async function parseExcelFile(file: File): Promise<ExcelImportSummary> {
       buyTime,
       expectedSellPrice: derivedSellPrice,
       shippingFee,
+      status: sold ? 'completed' : receivedTime ? 'received' : 'pending',
       received: Boolean(receivedTime),
       receivedTime: receivedTime || undefined,
       sold,

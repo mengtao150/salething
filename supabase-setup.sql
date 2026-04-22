@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS items (
   buy_time TIMESTAMP WITH TIME ZONE NOT NULL,
   expected_sell_price DECIMAL(10,2),
   shipping_fee DECIMAL(10,2),
+  status VARCHAR(20) NOT NULL DEFAULT 'received',
   received BOOLEAN DEFAULT false,
   received_time TIMESTAMP WITH TIME ZONE,
   sold BOOLEAN DEFAULT false,
@@ -28,6 +29,9 @@ ADD COLUMN IF NOT EXISTS size VARCHAR(50);
 
 ALTER TABLE items
 ADD COLUMN IF NOT EXISTS sku VARCHAR(100);
+
+ALTER TABLE items
+ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'received';
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$

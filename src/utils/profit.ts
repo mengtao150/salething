@@ -1,4 +1,5 @@
 import type { Item, ProfitResult } from '@/types'
+import { isItemSold } from './itemStatus'
 
 export function calculateProfit(item: Item): ProfitResult {
   const shippingFee = item.shippingFee || 0
@@ -10,12 +11,12 @@ export function calculateProfit(item: Item): ProfitResult {
   }
 
   let actualProfit: number | undefined
-  if (item.sold && item.actualSellPrice !== undefined) {
+  if (isItemSold(item) && item.actualSellPrice !== undefined) {
     actualProfit = item.actualSellPrice - totalCost
   }
 
   let profitRate: number | undefined
-  if (item.sold && actualProfit !== undefined) {
+  if (isItemSold(item) && actualProfit !== undefined) {
     profitRate = totalCost > 0 ? (actualProfit / totalCost) * 100 : 0
   } else if (item.expectedSellPrice) {
     profitRate = totalCost > 0 ? (expectedProfit / totalCost) * 100 : 0

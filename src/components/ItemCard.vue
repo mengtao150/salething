@@ -1,17 +1,21 @@
 <template>
-  <el-card class="item-card" :class="[`category-${categoryClass}`, { 'is-sold': item.sold }]" shadow="never">
+  <el-card
+    class="item-card"
+    :class="[`category-${categoryClass}`, `status-${itemStatus}`, { 'is-completed': completedState }]"
+    shadow="never"
+  >
     <div class="item-card__top">
       <div class="meta">
         <span class="meta-id">#{{ item.id }}</span>
         <span class="category-pill">{{ item.category }}</span>
-        <span v-if="item.size" class="detail-pill">{{ item.size }}</span>
-        <span v-if="item.sold" class="sold-pill">已卖出</span>
+        <span class="detail-pill">{{ item.size || '未填尺码' }}</span>
+        <span class="status-pill">{{ statusLabel }}</span>
       </div>
       <PlatformBadge :platform="item.platform" />
     </div>
 
     <div class="item-card__header">
-      <h3 class="item-name" :class="{ 'is-sold': item.sold }">{{ item.name }}</h3>
+      <h3 class="item-name" :class="{ 'is-completed': completedState }">{{ item.name }}</h3>
       <p class="item-price">
         ¥{{ item.buyPrice.toFixed(2) }}
         <span>买入成本</span>
@@ -21,30 +25,35 @@
     <div class="item-card__body">
       <div class="info-grid">
         <div class="info-block">
-          <span class="label">预计卖价</span>
+          <span class="label">预计售价</span>
           <strong>{{ item.expectedSellPrice ? `¥${item.expectedSellPrice.toFixed(2)}` : '--' }}</strong>
         </div>
         <div class="info-block">
-          <span class="label">收货时间</span>
-          <strong>{{ item.receivedTime ? formatDate(item.receivedTime) : '待收货' }}</strong>
+          <span class="label">入仓时间</span>
+          <strong>{{ item.receivedTime ? formatDate(item.receivedTime) : '--' }}</strong>
         </div>
-        <div class="info-block" v-if="item.sku">
+        <div class="info-block">
           <span class="label">货号</span>
-          <strong>{{ item.sku }}</strong>
+          <strong>{{ item.sku || '--' }}</strong>
         </div>
-        <div class="info-block" v-if="item.size">
+        <div class="info-block">
           <span class="label">尺码</span>
-          <strong>{{ item.size }}</strong>
+          <strong>{{ item.size || '--' }}</strong>
         </div>
       </div>
 
-      <div class="countdown-block">
-        <span class="label">退货倒计时</span>
-        <Countdown :received-time="item.receivedTime" />
+      <div class="status-block">
+        <span class="label">{{ itemStatus === 'received' ? '退货倒计时' : '当前状态' }}</span>
+        <Countdown v-if="itemStatus === 'received'" :received-time="item.receivedTime" />
+        <div v-else class="status-summary">
+          <strong>{{ statusLabel }}</strong>
+          <span v-if="item.sellTime">{{ formatDate(item.sellTime) }}</span>
+          <span v-else-if="itemStatus === 'pending'">等待入仓</span>
+        </div>
       </div>
 
       <div class="profit-row">
-        <span class="label">{{ item.sold ? '实际利润' : '预计利润' }}</span>
+        <span class="label">{{ soldState ? '实际利润' : '预计利润' }}</span>
         <strong :class="profitClass">
           {{ displayProfit >= 0 ? '+' : '' }}¥{{ displayProfit.toFixed(2) }}
         </strong>
@@ -52,7 +61,7 @@
     </div>
 
     <div class="item-card__footer">
-      <el-button v-if="item.receivedTime && !item.sold" type="success" @click="handleSell">确认卖出</el-button>
+      <el-button v-if="itemStatus === 'received'" type="success" @click="handleSell">确认售出</el-button>
       <el-button type="info" plain @click="handleEdit">编辑</el-button>
       <el-popconfirm title="确定删除这件商品吗？" @confirm="handleDelete">
         <template #reference>
@@ -67,6 +76,7 @@
 import { computed } from 'vue'
 import type { Item } from '@/types'
 import { calculateProfit } from '@/utils/profit'
+import { getItemStatus, getStatusLabel, isItemCompleted, isItemSold } from '@/utils/itemStatus'
 import Countdown from './Countdown.vue'
 import PlatformBadge from './PlatformBadge.vue'
 
@@ -80,6 +90,10 @@ const emit = defineEmits<{
   delete: [id: string]
 }>()
 
+const itemStatus = computed(() => getItemStatus(props.item))
+const completedState = computed(() => isItemCompleted(props.item))
+const soldState = computed(() => isItemSold(props.item))
+const statusLabel = computed(() => getStatusLabel(itemStatus.value))
 const profit = computed(() => calculateProfit(props.item))
 const displayProfit = computed(() => profit.value.actualProfit ?? profit.value.expectedProfit ?? 0)
 const profitClass = computed(() => {
@@ -101,7 +115,9 @@ const categoryClass = computed(() => {
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr)
-  return `${date.getMonth() + 1}/${date.getDate()}`
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${month}/${day}`
 }
 
 function handleSell() {
@@ -120,7 +136,8 @@ function handleDelete() {
 <style scoped lang="scss">
 .item-card {
   position: relative;
-  margin-bottom: 16px;
+  width: 100%;
+  height: 100%;
   border-radius: 28px;
   transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
   border-top: 4px solid transparent !important;
@@ -146,8 +163,8 @@ function handleDelete() {
     border-top-color: #8b95aa !important;
   }
 
-  &.is-sold {
-    opacity: 0.74;
+  &.is-completed {
+    opacity: 0.82;
 
     .item-name,
     .item-price,
@@ -158,7 +175,9 @@ function handleDelete() {
 
   :deep(.el-card__body) {
     display: grid;
+    grid-template-rows: auto auto 1fr auto;
     gap: 18px;
+    height: 100%;
     padding: 18px;
   }
 }
@@ -183,7 +202,7 @@ function handleDelete() {
 .meta-id,
 .category-pill,
 .detail-pill,
-.sold-pill {
+.status-pill {
   padding: 6px 10px;
   border-radius: 999px;
   font-size: 12px;
@@ -206,9 +225,24 @@ function handleDelete() {
   background: rgba(91, 125, 239, 0.1);
 }
 
-.sold-pill {
-  color: #67768f;
-  background: rgba(149, 158, 178, 0.14);
+.status-pill {
+  color: #3f5f31;
+  background: rgba(109, 186, 114, 0.16);
+}
+
+.status-sold .status-pill {
+  color: #8b5c11;
+  background: rgba(242, 165, 59, 0.16);
+}
+
+.status-completed .status-pill {
+  color: #1f7a56;
+  background: rgba(40, 179, 125, 0.16);
+}
+
+.status-pending .status-pill {
+  color: #66748d;
+  background: rgba(125, 140, 170, 0.16);
 }
 
 .item-card__header {
@@ -218,12 +252,17 @@ function handleDelete() {
 .item-name {
   flex: 1;
   margin: 0;
+  min-height: calc(18px * 1.3 * 2);
   font-size: 18px;
   line-height: 1.3;
   color: #172b4d;
   letter-spacing: -0.03em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 
-  &.is-sold {
+  &.is-completed {
     text-decoration: line-through;
   }
 }
@@ -237,6 +276,7 @@ function handleDelete() {
   font-weight: 700;
   letter-spacing: -0.04em;
   color: #10213d;
+  white-space: nowrap;
 
   span {
     margin-top: 4px;
@@ -249,6 +289,7 @@ function handleDelete() {
 
 .item-card__body {
   display: grid;
+  align-content: start;
   gap: 14px;
 }
 
@@ -259,7 +300,7 @@ function handleDelete() {
 }
 
 .info-block,
-.countdown-block {
+.status-block {
   padding: 14px;
   border-radius: 20px;
   background: rgba(245, 248, 255, 0.9);
@@ -268,23 +309,42 @@ function handleDelete() {
 .info-block {
   display: grid;
   gap: 8px;
+  min-height: 78px;
 
   strong {
     font-size: 15px;
     color: #1c304f;
+    word-break: break-word;
+  }
+}
+
+.status-block {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 62px;
+}
+
+.status-summary {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+
+  strong {
+    font-size: 15px;
+    color: #1c304f;
+  }
+
+  span {
+    font-size: 12px;
+    color: #7d8aa2;
   }
 }
 
 .label {
   font-size: 12px;
   color: #7d8aa2;
-}
-
-.countdown-block {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
 }
 
 .profit-row {
@@ -316,7 +376,6 @@ function handleDelete() {
 
 @media (max-width: 768px) {
   .item-card {
-    margin-bottom: 14px;
     border-radius: 24px;
 
     :deep(.el-card__body) {
@@ -325,13 +384,15 @@ function handleDelete() {
   }
 
   .item-card__header,
-  .countdown-block {
+  .status-block {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .item-price {
+  .item-price,
+  .status-summary {
     align-items: flex-start;
+    justify-items: start;
   }
 
   .info-grid {

@@ -11,15 +11,14 @@
       <div class="voice-input-container">
         <VoiceRecordButton @recording-complete="handleVoiceInput" />
         <el-text size="small" style="margin-left: 12px">
-          点击麦克风开始录音，描述商品信息，例如：我在淘宝买了一双运动鞋，42 码，货号
-          NK-001，花了 499 元，昨天收到，预计卖 699 元，快递费 8 元。
+          点击麦克风开始录音，描述商品信息，例如：我在淘宝买了一双运动鞋，42 码，货号 NK-001，花了 499 元，昨天收货，预计卖 699 元，快递费 8 元。
         </el-text>
       </div>
 
       <div v-if="currentVoiceText" class="voice-result-panel">
         <div class="voice-result-header">
-          <span>讯飞转写结果</span>
-          <el-tag size="small" type="success">控制台已输出</el-tag>
+          <span>语音转写结果</span>
+          <el-tag size="small" type="success">已识别</el-tag>
         </div>
         <div class="voice-result-content">{{ currentVoiceText }}</div>
       </div>
@@ -31,6 +30,12 @@
 
     <el-form-item label="商品类别" prop="category">
       <el-segmented v-model="formData.category" :options="categoryOptions" class="category-segment" />
+    </el-form-item>
+
+    <el-form-item label="商品状态" prop="status">
+      <el-select v-model="formData.status" placeholder="请选择商品状态" style="width: 100%">
+        <el-option v-for="option in statusOptions" :key="option.value" :label="option.label" :value="option.value" />
+      </el-select>
     </el-form-item>
 
     <el-form-item label="尺码">
@@ -72,11 +77,11 @@
       />
     </el-form-item>
 
-    <el-form-item label="收货时间" prop="receivedTime">
+    <el-form-item label="入仓时间" prop="receivedTime">
       <el-date-picker
         v-model="formData.receivedTime"
         type="datetime"
-        placeholder="选择收货时间"
+        placeholder="选择入仓时间"
         style="width: 100%"
         format="YYYY-MM-DD HH:mm"
         :teleported="false"
@@ -84,7 +89,7 @@
       />
     </el-form-item>
 
-    <el-form-item label="预计卖价" prop="expectedSellPrice">
+    <el-form-item label="预计售价" prop="expectedSellPrice">
       <el-input-number
         v-model="formData.expectedSellPrice"
         :min="0"
@@ -94,7 +99,7 @@
       />
     </el-form-item>
 
-    <el-form-item label="快递费用" prop="shippingFee">
+    <el-form-item label="快递费用">
       <el-input-number
         v-model="formData.shippingFee"
         :min="0"
@@ -104,14 +109,10 @@
       />
     </el-form-item>
 
-    <template v-if="editMode">
-      <el-divider>卖出信息</el-divider>
+    <template v-if="showSaleFields">
+      <el-divider>成交信息</el-divider>
 
-      <el-form-item label="已卖出">
-        <el-switch v-model="formData.sold" />
-      </el-form-item>
-
-      <el-form-item v-if="formData.sold" label="实际卖价" prop="actualSellPrice">
+      <el-form-item label="实际售价" prop="actualSellPrice">
         <el-input-number
           v-model="formData.actualSellPrice"
           :min="0"
@@ -121,11 +122,11 @@
         />
       </el-form-item>
 
-      <el-form-item v-if="formData.sold" label="卖出时间">
+      <el-form-item :label="formData.status === 'completed' ? '成功时间' : '售出时间'" prop="sellTime">
         <el-date-picker
           v-model="formData.sellTime"
           type="datetime"
-          placeholder="卖出时间"
+          :placeholder="formData.status === 'completed' ? '选择交易成功时间' : '选择售出时间'"
           style="width: 100%"
           format="YYYY-MM-DD HH:mm"
           :teleported="false"
@@ -145,10 +146,11 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
-import type { Item, ItemCategory, Platform } from '@/types'
+import type { Item, ItemCategory, ItemStatus, Platform } from '@/types'
 import ExtractedDataPreview from '@/components/ExtractedDataPreview.vue'
 import VoiceRecordButton from '@/components/VoiceRecordButton.vue'
 import type { ExtractedItemData } from '@/utils/aiExtractor'
+import { deriveLegacyFlags, ITEM_STATUS_OPTIONS, normalizeItemStatus, shouldShowSaleFields } from '@/utils/itemStatus'
 
 const categoryOptions: ItemCategory[] = ['鞋子', '书包', '衣服', '其他']
 const sizeOptionsMap: Record<ItemCategory, string[]> = {
@@ -170,6 +172,7 @@ const formRef = ref<FormInstance>()
 const editMode = computed(() => !!props.item)
 const showPreviewDialog = ref(false)
 const currentVoiceText = ref('')
+const statusOptions = ITEM_STATUS_OPTIONS
 
 const formData = reactive({
   name: '',
@@ -181,14 +184,14 @@ const formData = reactive({
   buyTime: new Date().toISOString(),
   expectedSellPrice: undefined as number | undefined,
   shippingFee: undefined as number | undefined,
-  received: false,
+  status: 'received' as ItemStatus,
   receivedTime: undefined as Date | undefined,
-  sold: false,
   actualSellPrice: undefined as number | undefined,
   sellTime: undefined as Date | undefined
 })
 
 const sizeOptions = computed(() => sizeOptionsMap[formData.category] || sizeOptionsMap.其他)
+const showSaleFields = computed(() => shouldShowSaleFields(formData.status))
 
 watch(
   () => formData.category,
@@ -204,15 +207,67 @@ watch(
   }
 )
 
+watch(
+  () => formData.status,
+  status => {
+    if (!showSaleFields.value) {
+      formData.actualSellPrice = undefined
+      formData.sellTime = undefined
+    }
+
+    if (status === 'pending') {
+      formData.receivedTime = undefined
+    }
+  }
+)
+
 const rules: FormRules = {
   name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
   category: [{ required: true, message: '请选择商品类别', trigger: 'change' }],
+  status: [{ required: true, message: '请选择商品状态', trigger: 'change' }],
   platform: [{ required: true, message: '请选择购买平台', trigger: 'change' }],
   buyPrice: [{ required: true, message: '请输入买入价格', trigger: 'blur' }],
-  receivedTime: [{ required: true, message: '请选择收货时间', trigger: 'change' }]
+  receivedTime: [
+    {
+      validator: (_rule, value, callback) => {
+        if (formData.status !== 'pending' && !value) {
+          callback(new Error('请选择入仓时间'))
+          return
+        }
+        callback()
+      },
+      trigger: 'change'
+    }
+  ],
+  actualSellPrice: [
+    {
+      validator: (_rule, value, callback) => {
+        if (showSaleFields.value && (value === undefined || value === null || value <= 0)) {
+          callback(new Error('请输入实际售价'))
+          return
+        }
+        callback()
+      },
+      trigger: 'blur'
+    }
+  ],
+  sellTime: [
+    {
+      validator: (_rule, value, callback) => {
+        if (showSaleFields.value && !value) {
+          callback(new Error('请选择成交时间'))
+          return
+        }
+        callback()
+      },
+      trigger: 'change'
+    }
+  ]
 }
 
 function syncFormData(item?: Item) {
+  const status = normalizeItemStatus(item?.status, item?.received, item?.sold)
+
   formData.name = item?.name || ''
   formData.category = (item?.category || '其他') as ItemCategory
   formData.size = item?.size || ''
@@ -222,9 +277,8 @@ function syncFormData(item?: Item) {
   formData.buyTime = item?.buyTime || new Date().toISOString()
   formData.expectedSellPrice = item?.expectedSellPrice
   formData.shippingFee = item?.shippingFee
-  formData.received = !!item?.receivedTime
+  formData.status = item ? status : 'received'
   formData.receivedTime = item?.receivedTime ? new Date(item.receivedTime) : undefined
-  formData.sold = item?.sold || false
   formData.actualSellPrice = item?.actualSellPrice
   formData.sellTime = item?.sellTime ? new Date(item.sellTime) : undefined
 }
@@ -242,7 +296,6 @@ watch(
 
 function handleVoiceInput(text: string) {
   currentVoiceText.value = text
-  console.log('[讯飞语音转文字]', text)
   showPreviewDialog.value = true
 }
 
@@ -273,6 +326,9 @@ function handleExtractedDataConfirm(data: ExtractedItemData) {
 
   if (data.receivedTime) {
     formData.receivedTime = new Date(data.receivedTime)
+    if (formData.status === 'pending') {
+      formData.status = 'received'
+    }
   }
 
   if (data.expectedSellPrice !== undefined) {
@@ -290,6 +346,9 @@ async function submit() {
   try {
     await formRef.value.validate()
 
+    const status = normalizeItemStatus(formData.status)
+    const legacyFlags = deriveLegacyFlags(status)
+
     emit('submit', {
       name: formData.name,
       category: formData.category,
@@ -297,15 +356,17 @@ async function submit() {
       sku: formData.sku || undefined,
       platform: formData.platform,
       buyPrice: formData.buyPrice,
-      buyTime: new Date().toISOString(),
+      buyTime: formData.buyTime,
       expectedSellPrice: formData.expectedSellPrice,
       shippingFee: formData.shippingFee,
-      received: !!formData.receivedTime,
-      receivedTime: formData.receivedTime ? new Date(formData.receivedTime as Date).toISOString() : undefined,
-      sold: formData.sold,
-      actualSellPrice: formData.actualSellPrice,
-      sellTime: formData.sellTime ? new Date(formData.sellTime as Date).toISOString() : undefined
+      status,
+      received: legacyFlags.received,
+      receivedTime: legacyFlags.received && formData.receivedTime ? new Date(formData.receivedTime).toISOString() : undefined,
+      sold: legacyFlags.sold,
+      actualSellPrice: showSaleFields.value ? formData.actualSellPrice : undefined,
+      sellTime: showSaleFields.value && formData.sellTime ? new Date(formData.sellTime).toISOString() : undefined
     })
+
     return true
   } catch {
     return false

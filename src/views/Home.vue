@@ -3,8 +3,8 @@
     <section class="hero-section">
       <div class="hero-copy">
         <span class="hero-eyebrow">SaleThing Dashboard</span>
-        <h1>让每一件商品都更清晰、更好管理</h1>
-        <p>用更干净的视图查看库存、倒计时和利润变化，手机上也保持轻盈顺手的浏览体验。</p>
+        <h1>让每一件商品的状态都更清晰</h1>
+        <p>首页默认只展示正在倒计时的在库商品，你也可以继续按分类、平台和状态快速筛选。</p>
       </div>
 
       <div class="hero-panel">
@@ -94,20 +94,21 @@
           <el-col :xs="12" :sm="6" :md="6" :lg="4">
             <el-select
               v-model="filterStatus"
-              placeholder="全部状态"
+              placeholder="商品状态"
               clearable
               style="width: 100%"
               @change="handleFilter"
             >
               <el-option label="全部" value="" />
               <el-option label="待收货" value="pending" />
-              <el-option label="倒计时中" value="received" />
-              <el-option label="已卖出" value="sold" />
+              <el-option label="入仓" value="received" />
+              <el-option label="售出" value="sold" />
+              <el-option label="交易成功" value="completed" />
             </el-select>
           </el-col>
           <el-col :xs="24" :sm="12" :md="12" :lg="4">
             <el-button type="info" plain :icon="Upload" @click="openExcelImport" class="create-button" :loading="importingExcel">
-              Excel导入
+              Excel 导入
             </el-button>
           </el-col>
           <el-col :xs="24" :sm="12" :md="12" :lg="4">
@@ -125,11 +126,11 @@
       <div class="list-header">
         <div>
           <span class="section-kicker">商品列表</span>
-          <h2>按类别清晰查看商品</h2>
+          <h2>默认展示倒计时中的商品</h2>
         </div>
         <div class="list-header__meta">
           <span>{{ displayItems.length }} 件</span>
-          <span>{{ soldItemCount }} 件已成交</span>
+          <span>{{ soldItemCount }} 件已售出或成交</span>
         </div>
       </div>
 
@@ -140,7 +141,7 @@
               <h3>{{ group.category }}</h3>
               <p>{{ group.items.length }} 件商品</p>
             </div>
-            <el-tag round effect="light">{{ group.items.filter(item => !item.sold).length }} 件在库</el-tag>
+            <el-tag round effect="light">{{ group.items.filter(item => isCountdownItem(item)).length }} 件在仓</el-tag>
           </div>
 
           <el-row :gutter="16">
@@ -151,7 +152,7 @@
         </section>
       </div>
 
-      <el-empty v-else class="empty-panel" description="还没有符合条件的商品">
+      <el-empty v-else class="empty-panel" description="没有符合当前筛选条件的商品">
         <el-button type="primary" @click="showAddDialog">添加第一件商品</el-button>
       </el-empty>
     </section>
@@ -205,7 +206,7 @@
               </span>
             </div>
           </el-col>
-          <el-col :span="12" v-if="editingItem.sold && editProfit.actualProfit !== undefined">
+          <el-col :span="12" v-if="editingItemSold && editProfit.actualProfit !== undefined">
             <div class="profit-item">
               <span class="label">实际利润</span>
               <span class="value" :class="editProfit.actualProfit >= 0 ? 'positive' : 'negative'">
@@ -222,12 +223,12 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="sellDialogVisible" title="确认卖出" width="400px">
+    <el-dialog v-model="sellDialogVisible" title="确认售出" width="400px">
       <el-form :model="sellForm" label-width="80px">
         <el-form-item label="商品名称">
           <span>{{ sellingItem?.name }}</span>
         </el-form-item>
-        <el-form-item label="实际卖价">
+        <el-form-item label="实际售价">
           <el-input-number
             v-model="sellForm.sellPrice"
             :min="0"
@@ -255,9 +256,10 @@ import ItemForm from '@/components/ItemForm.vue'
 import StatsCard from '@/components/StatsCard.vue'
 import { emailJsConfig } from '@/config/emailjs'
 import { useItemsStore } from '@/stores/items'
-import type { Item, ItemCategory, Platform } from '@/types'
+import type { Item, ItemCategory, ItemStatus, Platform } from '@/types'
 import { getCountdown } from '@/utils/countdown'
 import { parseExcelFile } from '@/utils/excelImport'
+import { getItemStatus, isCountdownItem, isItemSold } from '@/utils/itemStatus'
 import { calculateProfit } from '@/utils/profit'
 import { getExpiredItems, getReminderMessage, getUrgentItems, sendEmailReminder } from '@/utils/reminder'
 
@@ -269,12 +271,19 @@ const categoryClassMap: Record<ItemCategory, string> = {
   其他: 'other'
 }
 
+const statusSortOrder: Record<ItemStatus, number> = {
+  received: 0,
+  pending: 1,
+  sold: 2,
+  completed: 3
+}
+
 const itemsStore = useItemsStore()
 
 const searchKeyword = ref('')
 const filterCategory = ref<'' | ItemCategory>('')
 const filterPlatform = ref<'' | Platform>('')
-const filterStatus = ref<'' | 'pending' | 'received' | 'sold'>('')
+const filterStatus = ref<'' | ItemStatus>('received')
 
 const addDialogVisible = ref(false)
 const editDialogVisible = ref(false)
@@ -302,11 +311,14 @@ const editProfit = computed(() => {
   return calculateProfit(editingItem.value)
 })
 
+const editingItemSold = computed(() => (editingItem.value ? isItemSold(editingItem.value) : false))
+
 const displayItems = computed(() => {
   let items = [...itemsStore.allItems]
 
-  if (searchKeyword.value) {
-    items = itemsStore.searchItems(searchKeyword.value)
+  if (searchKeyword.value.trim()) {
+    const keyword = searchKeyword.value.trim().toLowerCase()
+    items = items.filter(item => item.name.toLowerCase().includes(keyword))
   }
 
   if (filterCategory.value) {
@@ -318,33 +330,33 @@ const displayItems = computed(() => {
   }
 
   if (filterStatus.value) {
-    items = items.filter(item => {
-      if (filterStatus.value === 'pending') return !item.received
-      if (filterStatus.value === 'received') return item.received && !item.sold
-      if (filterStatus.value === 'sold') return item.sold
-      return true
-    })
+    items = items.filter(item => getItemStatus(item) === filterStatus.value)
   }
 
   return items.sort((a, b) => {
-    if (a.sold !== b.sold) {
-      return a.sold ? 1 : -1
+    const aStatus = getItemStatus(a)
+    const bStatus = getItemStatus(b)
+
+    if (statusSortOrder[aStatus] !== statusSortOrder[bStatus]) {
+      return statusSortOrder[aStatus] - statusSortOrder[bStatus]
     }
 
-    if (!a.sold && !b.sold) {
+    if (aStatus === 'received' && bStatus === 'received') {
       const countdownOrder = getCountdownSortValue(a) - getCountdownSortValue(b)
       if (countdownOrder !== 0) {
         return countdownOrder
       }
     }
 
-    if (a.sold && b.sold) {
+    if (isItemSold(a) && isItemSold(b)) {
       const aTime = a.sellTime ? new Date(a.sellTime).getTime() : 0
       const bTime = b.sellTime ? new Date(b.sellTime).getTime() : 0
       return bTime - aTime
     }
 
-    return 0
+    const aUpdated = new Date(a.updatedAt).getTime()
+    const bUpdated = new Date(b.updatedAt).getTime()
+    return bUpdated - aUpdated
   })
 })
 
@@ -362,8 +374,8 @@ const displayGroups = computed(() =>
     })
 )
 
-const activeItemCount = computed(() => itemsStore.allItems.filter(item => !item.sold).length)
-const soldItemCount = computed(() => itemsStore.allItems.filter(item => item.sold).length)
+const activeItemCount = computed(() => itemsStore.allItems.filter(item => isCountdownItem(item)).length)
+const soldItemCount = computed(() => itemsStore.allItems.filter(item => isItemSold(item)).length)
 const urgentItemCount = computed(() => getUrgentItems(itemsStore.allItems).length + getExpiredItems(itemsStore.allItems).length)
 
 onMounted(async () => {
@@ -407,7 +419,7 @@ async function checkReminders() {
     })
     saveReminderCache(reminderCache)
 
-    ElMessage.success(`邮件提醒已发送到 ${email}，本次新增 ${unsentUrgentItems.length + unsentExpiredItems.length} 件提醒商品`)
+    ElMessage.success(`邮件提醒已发送到 ${email}，本次新增 ${unsentUrgentItems.length + unsentExpiredItems.length} 件商品提醒`)
   }
 
   const message = getReminderMessage(unsentUrgentItems, unsentExpiredItems)
@@ -445,6 +457,7 @@ function testEmailReminder() {
     buyTime: new Date().toISOString(),
     expectedSellPrice: 150,
     shippingFee: 5,
+    status: 'received',
     received: true,
     receivedTime: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
     sold: false,
@@ -544,14 +557,15 @@ function handleSell(id: string) {
 
 async function handleConfirmSell() {
   if (sellForm.value.sellPrice <= 0) {
-    ElMessage.warning('请输入卖出价格')
+    ElMessage.warning('请输入售出价格')
     return
   }
 
   if (sellingItem.value) {
     await itemsStore.confirmSell(sellingItem.value.id, sellForm.value.sellPrice)
     sellDialogVisible.value = false
-    ElMessage.success('已确认卖出')
+    sellingItem.value = undefined
+    ElMessage.success('已确认售出')
   }
 }
 
@@ -588,8 +602,12 @@ async function handleDelete(id: string) {
 }
 
 function getCountdownSortValue(item: Item) {
-  if (item.sold) {
+  if (isItemSold(item)) {
     return Number.POSITIVE_INFINITY
+  }
+
+  if (getItemStatus(item) === 'pending') {
+    return Number.MAX_SAFE_INTEGER - 1
   }
 
   const countdown = item.receivedTime ? getCountdown(item.receivedTime) : null
@@ -820,6 +838,10 @@ function cleanupReminderCache(validKeys: string[]) {
 .category-section {
   display: grid;
   gap: 14px;
+
+  :deep(.el-col) {
+    display: flex;
+  }
 }
 
 .category-header {

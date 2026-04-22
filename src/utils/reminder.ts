@@ -2,11 +2,12 @@ import type { Item } from '@/types'
 import { getCountdown } from './countdown'
 import { ElMessage } from 'element-plus'
 import { emailJsConfig, isEmailJsConfigured } from '@/config/emailjs'
+import { isCountdownItem } from './itemStatus'
 
 // 检查需要提醒的商品（剩余时间 < 1天）
 export function getUrgentItems(items: Item[]): Item[] {
   return items.filter(item => {
-    if (!item.received || item.sold) return false
+    if (!isCountdownItem(item)) return false
     const countdown = getCountdown(item.receivedTime)
     if (!countdown) return false
     return !countdown.isExpired && countdown.days < 1
@@ -16,7 +17,7 @@ export function getUrgentItems(items: Item[]): Item[] {
 // 检查已超期的商品
 export function getExpiredItems(items: Item[]): Item[] {
   return items.filter(item => {
-    if (!item.received || item.sold) return false
+    if (!isCountdownItem(item)) return false
     const countdown = getCountdown(item.receivedTime)
     if (!countdown) return false
     return countdown.isExpired
