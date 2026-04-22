@@ -51,6 +51,10 @@ export async function parseExcelFile(file: File): Promise<ExcelImportSummary> {
     const rowNumber = index + 2
     const row = normalizeRow(rawRow)
 
+    if (isEmptyRow(row)) {
+      return
+    }
+
     const name = getText(row['名称'])
     if (!name) {
       warnings.push(`第 ${rowNumber} 行缺少“名称”，已跳过`)
@@ -123,6 +127,10 @@ export async function parseExcelFile(file: File): Promise<ExcelImportSummary> {
 
 function normalizeRow(row: ExcelRow) {
   return Object.fromEntries(Object.entries(row).map(([key, value]) => [String(key).trim(), value]))
+}
+
+function isEmptyRow(row: ExcelRow) {
+  return Object.values(row).every(value => !getText(value))
 }
 
 function getText(value: unknown) {
