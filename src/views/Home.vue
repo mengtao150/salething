@@ -120,7 +120,7 @@
       </el-card>
     </section>
 
-    <ItemChart :items="itemsStore.allItems" />
+    <ItemChart :items="inventoryItems" />
 
     <section class="items-section" v-loading="itemsStore.loading">
       <div class="list-header">
@@ -312,9 +312,10 @@ const editProfit = computed(() => {
 })
 
 const editingItemSold = computed(() => (editingItem.value ? isItemSold(editingItem.value) : false))
+const inventoryItems = computed(() => itemsStore.getItemsByRecordStage('inventory'))
 
 const displayItems = computed(() => {
-  let items = [...itemsStore.allItems]
+  let items = [...inventoryItems.value]
 
   if (searchKeyword.value.trim()) {
     const keyword = searchKeyword.value.trim().toLowerCase()
@@ -374,9 +375,9 @@ const displayGroups = computed(() =>
     })
 )
 
-const activeItemCount = computed(() => itemsStore.allItems.filter(item => isCountdownItem(item)).length)
-const soldItemCount = computed(() => itemsStore.allItems.filter(item => isItemSold(item)).length)
-const urgentItemCount = computed(() => getUrgentItems(itemsStore.allItems).length + getExpiredItems(itemsStore.allItems).length)
+const activeItemCount = computed(() => inventoryItems.value.filter(item => isCountdownItem(item)).length)
+const soldItemCount = computed(() => inventoryItems.value.filter(item => isItemSold(item)).length)
+const urgentItemCount = computed(() => getUrgentItems(inventoryItems.value).length + getExpiredItems(inventoryItems.value).length)
 
 onMounted(async () => {
   await itemsStore.init()
@@ -384,8 +385,8 @@ onMounted(async () => {
 })
 
 async function checkReminders() {
-  const urgentItems = getUrgentItems(itemsStore.allItems)
-  const expiredItems = getExpiredItems(itemsStore.allItems)
+  const urgentItems = getUrgentItems(inventoryItems.value)
+  const expiredItems = getExpiredItems(inventoryItems.value)
 
   if (urgentItems.length === 0 && expiredItems.length === 0) {
     cleanupReminderCache([])
@@ -431,8 +432,8 @@ async function checkReminders() {
 }
 
 function manualCheckReminders() {
-  const urgentItems = getUrgentItems(itemsStore.allItems)
-  const expiredItems = getExpiredItems(itemsStore.allItems)
+  const urgentItems = getUrgentItems(inventoryItems.value)
+  const expiredItems = getExpiredItems(inventoryItems.value)
 
   if (urgentItems.length === 0 && expiredItems.length === 0) {
     ElMessage.success('目前没有需要紧急处理的商品')
@@ -457,6 +458,7 @@ function testEmailReminder() {
     buyTime: new Date().toISOString(),
     expectedSellPrice: 150,
     shippingFee: 5,
+    recordStage: 'inventory',
     status: 'received',
     received: true,
     receivedTime: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
@@ -548,7 +550,7 @@ async function handleAddSubmit(data: Omit<Item, 'id' | 'createdAt' | 'updatedAt'
 }
 
 function handleSell(id: string) {
-  sellingItem.value = itemsStore.allItems.find(item => item.id === id)
+  sellingItem.value = inventoryItems.value.find(item => item.id === id)
   if (sellingItem.value) {
     sellForm.value.sellPrice = sellingItem.value.expectedSellPrice || 0
     sellDialogVisible.value = true

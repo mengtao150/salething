@@ -359,6 +359,7 @@ async function submit() {
       buyTime: formData.buyTime,
       expectedSellPrice: formData.expectedSellPrice,
       shippingFee: formData.shippingFee,
+      recordStage: props.item?.recordStage || 'inventory',
       status,
       received: legacyFlags.received,
       receivedTime: legacyFlags.received && formData.receivedTime ? new Date(formData.receivedTime).toISOString() : undefined,

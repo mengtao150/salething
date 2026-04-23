@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import type { Item, Platform, Stats } from '@/types'
+import type { Item, Platform, RecordStage, Stats } from '@/types'
 import { storageApi } from '@/api/storage'
 import { calculateProfit } from '@/utils/profit'
 import { getItemStatus, isItemSold } from '@/utils/itemStatus'
@@ -22,6 +22,10 @@ export const useItemsStore = defineStore('items', () => {
   }
 
   const allItems = computed(() => items.value)
+
+  function getItemsByRecordStage(recordStage: RecordStage): Item[] {
+    return items.value.filter(item => item.recordStage === recordStage)
+  }
 
   function getItemsByStatus(status: Item['status']): Item[] {
     return items.value.filter(item => getItemStatus(item) === status)
@@ -110,6 +114,7 @@ export const useItemsStore = defineStore('items', () => {
   async function confirmReceive(id: string) {
     const now = new Date().toISOString()
     return updateItem(id, {
+      recordStage: 'inventory',
       status: 'received',
       received: true,
       receivedTime: now,
@@ -121,6 +126,7 @@ export const useItemsStore = defineStore('items', () => {
 
   async function confirmSell(id: string, sellPrice: number) {
     return updateItem(id, {
+      recordStage: 'inventory',
       status: 'sold',
       received: true,
       sold: true,
@@ -129,16 +135,65 @@ export const useItemsStore = defineStore('items', () => {
     })
   }
 
+  async function moveProcurementToInventory(
+    id: string,
+    mode: 'received' | 'sold',
+    options?: {
+      receivedTime?: string
+      shippingFee?: number
+      expectedSellPrice?: number
+      actualSellPrice?: number
+      sellTime?: string
+    }
+  ) {
+    const item = items.value.find(entry => entry.id === id)
+    if (!item) {
+      return false
+    }
+
+    const receivedTime = options?.receivedTime || item.receivedTime || new Date().toISOString()
+
+    if (mode === 'received') {
+      return updateItem(id, {
+        recordStage: 'inventory',
+        status: 'received',
+        shippingFee: options?.shippingFee ?? item.shippingFee,
+        expectedSellPrice: options?.expectedSellPrice ?? item.expectedSellPrice,
+        received: true,
+        receivedTime,
+        sold: false,
+        actualSellPrice: undefined,
+        sellTime: undefined
+      })
+    }
+
+    const sellTime = options?.sellTime || new Date().toISOString()
+    const actualSellPrice = options?.actualSellPrice ?? item.expectedSellPrice ?? 0
+
+    return updateItem(id, {
+      recordStage: 'inventory',
+      status: 'completed',
+      shippingFee: options?.shippingFee ?? item.shippingFee,
+      expectedSellPrice: options?.expectedSellPrice ?? item.expectedSellPrice,
+      received: true,
+      receivedTime,
+      sold: true,
+      actualSellPrice,
+      sellTime
+    })
+  }
+
   const stats = computed((): Stats => {
-    const totalItems = items.value.length
-    const pendingItems = items.value.filter(item => getItemStatus(item) === 'pending').length
-    const receivedItems = items.value.filter(item => getItemStatus(item) === 'received').length
-    const soldItems = items.value.filter(item => isItemSold(item)).length
+    const inventoryItems = items.value.filter(item => item.recordStage !== 'procurement')
+    const totalItems = inventoryItems.length
+    const pendingItems = inventoryItems.filter(item => getItemStatus(item) === 'pending').length
+    const receivedItems = inventoryItems.filter(item => getItemStatus(item) === 'received').length
+    const soldItems = inventoryItems.filter(item => isItemSold(item)).length
 
     let totalCost = 0
     let totalProfit = 0
 
-    items.value.forEach(item => {
+    inventoryItems.forEach(item => {
       const profit = calculateProfit(item)
       totalCost += profit.totalCost
       if (profit.actualProfit !== undefined) {
@@ -181,6 +236,7 @@ export const useItemsStore = defineStore('items', () => {
     allItems,
     loading,
     init,
+    getItemsByRecordStage,
     getItemsByStatus,
     getItemsByPlatform,
     searchItems,
@@ -190,6 +246,7 @@ export const useItemsStore = defineStore('items', () => {
     deleteItem,
     confirmReceive,
     confirmSell,
+    moveProcurementToInventory,
     stats,
     exportData,
     importData

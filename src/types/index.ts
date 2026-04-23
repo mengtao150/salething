@@ -4,6 +4,8 @@ export type ItemCategory = '鞋子' | '书包' | '衣服' | '其他'
 
 export type ItemStatus = 'pending' | 'received' | 'sold' | 'completed'
 
+export type RecordStage = 'inventory' | 'procurement'
+
 export interface Item {
   id: string
   name: string
@@ -15,6 +17,7 @@ export interface Item {
   buyTime: string
   expectedSellPrice?: number
   shippingFee?: number
+  recordStage: RecordStage
   status: ItemStatus
   received: boolean
   receivedTime?: string
